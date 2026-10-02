@@ -28,7 +28,7 @@ if (isset($_POST['register'])) {
 
     if(empty($firstname) || empty($lastname) || empty($username) || empty($phone) || empty($password)){
         $error = "Please fill all the fields";
-    } elseif (!filter_var($username, FILTER_VALIDATE_EMAIL) || !str_contains($username, '@gmail.com')) {
+    } elseif (!filter_var($username, FILTER_VALIDATE_EMAIL) || strpos($username, '@gmail.com') === false) {
         $error = "Please use a valid Gmail address";
     } elseif (!preg_match('/^09\d{9}$/', $phone)) {
         $error = "Phone must start with 09 and be 11 digits";

@@ -2,47 +2,59 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-include 'db.php';
+require_once __DIR__ . '/db.php';
 
-// 1. GATEKEEPER
-function checkLogin() {
+function checkLogin(): void
+{
     if (!isset($_SESSION['admin'])) {
-        header("Location: login.php");
-        exit();
+        header('Location: login.php');
+        exit;
     }
 }
 
-// 2. MAIN STATS & BREAKDOWNS
-function getDashboardData($conn, $range = 'month') {
-    // Determine the date condition
-    $dateCondition = ($range == 'today') ? "CURDATE()" : "DATE_SUB(CURDATE(), INTERVAL 1 MONTH)";
-    
-    // Helper to generate the WHERE clause for different columns
-    $whereBooking = "WHERE booking_date >= $dateCondition";
-    $whereExpense = "WHERE expense_date >= $dateCondition";
-    $whereLiab    = "WHERE created_at >= $dateCondition";
+function getDashboardData(mysqli $conn, string $range = 'month'): array
+{
+    $startDate = $range === 'today' ? date('Y-m-d') : date('Y-m-d', strtotime('-1 month'));
 
-    // --- Totals ---
-    $income = $conn->query("SELECT SUM(price) as total FROM bookings $whereBooking")->fetch_assoc()['total'] ?? 0;
-    $expense = $conn->query("SELECT SUM(amount) as total FROM expenses $whereExpense")->fetch_assoc()['total'] ?? 0;
-    $liabilities = $conn->query("SELECT SUM(amount) as total FROM liabilities $whereLiab")->fetch_assoc()['total'] ?? 0;
-    $profit = $income - $expense;
+    $stmt = $conn->prepare("SELECT COALESCE(SUM(price), 0) AS total FROM bookings WHERE booking_date >= ? AND status <> 'Cancelled'");
+    $stmt->bind_param('s', $startDate);
+    $stmt->execute();
+    $income = (float) ($stmt->get_result()->fetch_assoc()['total'] ?? 0);
 
-    // --- Breakdowns (Now Filtered by Date!) ---
-    $rental_breakdown = $conn->query("SELECT package_type, SUM(price) as amt FROM bookings $whereBooking GROUP BY package_type");
-    $expense_breakdown = $conn->query("SELECT description, SUM(amount) as amt FROM expenses $whereExpense GROUP BY description");
-    $liability_breakdown = $conn->query("SELECT creditor, SUM(amount) as amt FROM liabilities $whereLiab GROUP BY creditor");
+    $stmt = $conn->prepare('SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE expense_date >= ?');
+    $stmt->bind_param('s', $startDate);
+    $stmt->execute();
+    $expense = (float) ($stmt->get_result()->fetch_assoc()['total'] ?? 0);
+
+    $stmt = $conn->prepare('SELECT COALESCE(SUM(amount), 0) AS total FROM liabilities WHERE created_at >= ?');
+    $stmt->bind_param('s', $startDate);
+    $stmt->execute();
+    $liabilities = (float) ($stmt->get_result()->fetch_assoc()['total'] ?? 0);
+
+    $stmt = $conn->prepare("SELECT package_type, SUM(price) AS amt FROM bookings WHERE booking_date >= ? AND status <> 'Cancelled' GROUP BY package_type ORDER BY amt DESC");
+    $stmt->bind_param('s', $startDate);
+    $stmt->execute();
+    $rentals = $stmt->get_result();
+
+    $stmt = $conn->prepare('SELECT description, SUM(amount) AS amt FROM expenses WHERE expense_date >= ? GROUP BY description ORDER BY amt DESC');
+    $stmt->bind_param('s', $startDate);
+    $stmt->execute();
+    $expenses = $stmt->get_result();
+
+    $stmt = $conn->prepare('SELECT creditor, SUM(amount) AS amt FROM liabilities WHERE created_at >= ? GROUP BY creditor ORDER BY amt DESC');
+    $stmt->bind_param('s', $startDate);
+    $stmt->execute();
+    $liabilitiesList = $stmt->get_result();
 
     return [
         'stats' => [
             'income' => $income,
             'expense' => $expense,
             'liabilities' => $liabilities,
-            'profit' => $profit
+            'profit' => $income - $expense,
         ],
-        'rentals' => $rental_breakdown,
-        'expenses' => $expense_breakdown,
-        'liabilities_list' => $liability_breakdown
+        'rentals' => $rentals,
+        'expenses' => $expenses,
+        'liabilities_list' => $liabilitiesList,
     ];
 }
-?>
