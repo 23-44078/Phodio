@@ -2,6 +2,7 @@
 session_start();
 require_once __DIR__ . '/db/db.php';
 require_once __DIR__ . '/includes/booking_helpers.php';
+require_once __DIR__ . '/includes/ui.php';
 
 if (!isset($_SESSION['client_id'])) {
     header('Location: client_login.php');
@@ -15,91 +16,35 @@ $groupedPackages = [];
 foreach ($packages as $package) {
     $groupedPackages[$package['category']][] = $package;
 }
-function phodio_h(string $value): string
-{
-    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
-}
-?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book a Session | SOULPRINT</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
-    <style>
-        :root{--page:#0b0d12;--panel:#151922;--panel-soft:#1b2130;--line:#2b3242;--accent:#ef4444;--blue:#7da8ff;--muted:#a6afbf;}
-        body{background:var(--page);color:#f8fafc;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;}
-        .client-main{max-width:1440px;margin:auto;padding:30px 22px 48px;}
-        .hero{background:radial-gradient(circle at 80% 10%,rgba(239,68,68,.2),transparent 40%),linear-gradient(135deg,#1b2130,#11151e);border:1px solid var(--line);border-radius:20px;padding:28px 30px;margin-bottom:24px;}
-        .hero h1{font-weight:800;letter-spacing:-.04em;}
-        .eyebrow{color:#ff9696;text-transform:uppercase;letter-spacing:.14em;font-size:.72rem;font-weight:800;}
-        .surface{background:var(--panel);border:1px solid var(--line);border-radius:16px;color:#f8fafc;}
-        .surface-header{border-bottom:1px solid var(--line);padding:17px 20px;font-weight:700;}
-        .surface-body{padding:20px;}
-        .form-control,.form-select{background:#0e121a;border:1px solid #394155;color:#f8fafc;}
-        .form-control:focus,.form-select:focus{background:#0e121a;color:#fff;border-color:#ff6868;box-shadow:0 0 0 .2rem rgba(239,68,68,.15);}
-        .form-control::placeholder{color:#7e899c;}
-        .form-label{font-size:.85rem;font-weight:650;color:#dce2ec;}
-        .btn-primary{background:var(--accent);border-color:var(--accent);font-weight:700;}
-        .btn-primary:hover{background:#d93636;border-color:#d93636;}
-        .text-secondary-custom{color:var(--muted)!important;}
-        .rec-card{height:100%;background:linear-gradient(145deg,#191e2b,#11151d);border:1px solid #30394d;border-radius:14px;padding:17px;}
-        .match-score{background:rgba(16,185,129,.14);color:#6ee7b7;border:1px solid rgba(16,185,129,.28);}
-        .rec-reason{color:#bdc7d7;font-size:.83rem;}
-        #calendar{min-height:620px;background:var(--panel);padding:12px;border-radius:0 0 16px 16px;}
-        .fc{--fc-border-color:#303849;--fc-page-bg-color:var(--panel);--fc-neutral-bg-color:#171d29;--fc-list-event-hover-bg-color:#20283a;}
-        .fc .fc-toolbar-title{font-size:1.15rem;font-weight:750;color:#fff;}
-        .fc .fc-button-primary{background:#242c3d;border-color:#3b465b;text-transform:capitalize;}
-        .fc .fc-button-primary:hover,.fc .fc-button-primary:focus{background:#343e52;border-color:#53617c;box-shadow:none;}
-        .fc .fc-button-primary:not(:disabled).fc-button-active{background:var(--accent);border-color:var(--accent);}
-        .fc .fc-daygrid-day-number,.fc .fc-col-header-cell-cushion{color:#e7ebf2;text-decoration:none;}
-        .fc .fc-day-today{background:rgba(239,68,68,.08)!important;}
-        .fc .fc-daygrid-day:hover{background:rgba(255,255,255,.035);cursor:pointer;}
-        .status-chip{display:inline-flex;align-items:center;border-radius:999px;padding:5px 10px;font-size:.76rem;font-weight:750;white-space:nowrap;}
-        .status-pending{background:rgba(245,158,11,.14);color:#fbbf24;}
-        .status-confirmed{background:rgba(59,130,246,.15);color:#93c5fd;}
-        .status-progress,.status-editing{background:rgba(168,85,247,.16);color:#d8b4fe;}
-        .status-ready{background:rgba(16,185,129,.16);color:#6ee7b7;}
-        .status-completed{background:rgba(34,197,94,.16);color:#86efac;}
-        .status-cancelled{background:rgba(148,163,184,.14);color:#cbd5e1;}
-        .timeline{border-left:1px solid #3b4559;margin-left:7px;padding-left:17px;}
-        .timeline-item{position:relative;padding-bottom:14px;}
-        .timeline-item:before{content:"";position:absolute;left:-22px;top:5px;width:9px;height:9px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 4px rgba(239,68,68,.12);}
-        .soft-badge{background:#222b3b;color:#cbd5e1;border:1px solid #364156;}
-        .toast-container{z-index:2000;}
-        .booking-table td{padding:.45rem 0;vertical-align:top;}
-        .booking-table td:first-child{color:var(--muted);width:38%;}
-        @media(max-width:768px){.client-main{padding:18px 12px 30px}.hero{padding:22px}.fc .fc-toolbar{display:flex;flex-direction:column;gap:10px}.fc .fc-toolbar-chunk{display:flex;justify-content:center}}
-    </style>
-</head>
-<body>
-<?php include __DIR__ . '/includes/client_header.php'; ?>
 
-<main class="client-main">
-    <section class="hero d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-center">
+$spTitle = 'Book a Session';
+$spDescription = 'Find a matching SOULPRINT package, request an appointment and follow your service progress.';
+$spFullCalendar = true;
+include __DIR__ . '/includes/page_top.php';
+include __DIR__ . '/includes/client_header.php';
+?>
+<main class="sp-shell sp-shell--wide">
+    <section class="sp-hero d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-center mb-4 sp-enter">
         <div>
-            <div class="eyebrow mb-2">Soul Print · Client Portal</div>
-            <h1 class="h2 mb-2">Plan your next session</h1>
-            <p class="mb-0 text-secondary-custom">Explore package recommendations, request an appointment, and follow your service progress in one place.</p>
+            <div class="sp-eyebrow mb-2"><i class="ri-aperture-line"></i><?= sp_h(SP_BRAND) ?> · <?= sp_h(SP_PORTAL_LABEL) ?></div>
+            <h1 class="sp-title mb-2">Plan your next session</h1>
+            <p class="sp-subtitle">Explore package recommendations, request an appointment, and follow your service progress in one place.</p>
         </div>
         <a class="btn btn-primary px-4 py-2" href="#booking-calendar"><i class="ri-calendar-check-line me-2"></i>View availability</a>
     </section>
 
     <section class="row g-4 mb-4" id="package-recommender">
-        <div class="col-lg-5">
+        <div class="col-lg-5" data-sp-reveal="left">
             <div class="surface h-100">
-                <div class="surface-header"><i class="ri-sparkling-2-line text-warning me-2"></i>Smart Package Finder</div>
+                <?= sp_surface_header('ri-sparkling-2-line', 'Smart package finder') ?>
                 <div class="surface-body">
-                    <p class="text-secondary-custom small mb-3">Tell us what you need. The recommendation engine matches your session type, group size, budget, style, and backdrop preference to available studio packages.</p>
-                    <form id="recommendationForm">
-                        <div class="mb-3">
+                    <p class="muted small mb-3">Tell us what you need. The recommendation engine matches your session type, group size, budget, style, and backdrop preference to available studio packages.</p>
+                    <form id="recommendationForm" data-sp-ajax="1">
+                        <div class="sp-field">
                             <label class="form-label" for="recEventType">What are you planning?</label>
                             <select class="form-select" id="recEventType" name="event_type" required>
                                 <?php foreach ($serviceTypes as $key => $label): ?>
-                                    <option value="<?= phodio_h($key) ?>"><?= phodio_h($label) ?></option>
+                                    <option value="<?= sp_h($key) ?>"><?= sp_h($label) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -107,87 +52,105 @@ function phodio_h(string $value): string
                             <div class="col-sm-6">
                                 <label class="form-label" for="recPeople">Group size</label>
                                 <select class="form-select" id="recPeople" name="people">
-                                    <option value="1">1 person</option><option value="2">2 people</option><option value="3">3 people</option><option value="4">4 people</option>
+                                    <option value="1">1 person</option>
+                                    <option value="2">2 people</option>
+                                    <option value="3">3 people</option>
+                                    <option value="4">4 people</option>
                                 </select>
                             </div>
                             <div class="col-sm-6">
-                                <label class="form-label" for="recBudget">Budget (₱)</label>
-                                <input class="form-control" id="recBudget" type="number" name="budget" min="300" max="100000" step="50" value="1000" required>
+                                <label class="form-label" for="recBudget">Budget (<?= sp_h(SP_MONEY_PREFIX) ?>)</label>
+                                <input class="form-control" id="recBudget" type="number" name="budget"
+                                       min="300" max="100000" step="50" value="1000" required>
                             </div>
                         </div>
-                        <div class="mt-3 mb-3">
+                        <div class="sp-field mt-3">
                             <label class="form-label" for="recStyle">Preferred style</label>
                             <select class="form-select" id="recStyle" name="style">
                                 <?php foreach (phodio_style_preferences() as $key => $label): ?>
-                                    <option value="<?= phodio_h($key) ?>"><?= phodio_h($label) ?></option>
+                                    <option value="<?= sp_h($key) ?>"><?= sp_h($label) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label" for="recRequirements">Requirements or preferences <span class="text-secondary-custom fw-normal">(optional)</span></label>
-                            <textarea class="form-control" id="recRequirements" name="requirements" rows="2" maxlength="600" placeholder="e.g. a themed graduation portrait with a backdrop"></textarea>
+                        <div class="sp-field">
+                            <label class="form-label" for="recRequirements">Requirements or preferences <span class="sp-faint fw-normal text-lowercase">(optional)</span></label>
+                            <textarea class="form-control" id="recRequirements" name="requirements" rows="2" maxlength="600"
+                                      placeholder="e.g. a themed graduation portrait with a backdrop"></textarea>
                         </div>
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="checkbox" value="1" id="recBackdrop" name="backdrop">
                             <label class="form-check-label small" for="recBackdrop">I would like a backdrop option</label>
                         </div>
-                        <button class="btn btn-primary w-100" type="submit" id="recommendButton"><i class="ri-magic-line me-2"></i>Recommend packages</button>
+                        <button class="btn btn-primary w-100" type="submit" id="recommendButton">
+                            <i class="ri-magic-line me-2"></i>Recommend packages
+                        </button>
                     </form>
-                    <div class="small text-secondary-custom mt-3"><i class="ri-shield-check-line me-1"></i>Recommendations use your selections only; no external AI service is contacted.</div>
+                    <p class="form-hint mt-3 mb-0"><i class="ri-shield-check-line me-1"></i>Recommendations use your selections only; no external AI service is contacted.</p>
                 </div>
             </div>
         </div>
-        <div class="col-lg-7">
+        <div class="col-lg-7" data-sp-reveal="right">
             <div class="surface h-100">
-                <div class="surface-header d-flex justify-content-between align-items-center">
-                    <span><i class="ri-lightbulb-flash-line text-warning me-2"></i>Recommended for you</span>
-                    <span class="badge soft-badge">Top matches</span>
-                </div>
+                <?= sp_surface_header(
+                    'ri-lightbulb-flash-line',
+                    'Recommended for you',
+                    '<span class="badge soft-badge">Top matches</span>'
+                ) ?>
                 <div class="surface-body" id="recommendationResults" aria-live="polite">
-                    <div class="text-center py-5 text-secondary-custom">
-                        <i class="ri-camera-lens-line d-block fs-2 mb-2"></i>
-                        <p class="mb-1">Your package suggestions will appear here.</p>
-                        <small>Adjust the preferences and select “Recommend packages.”</small>
-                    </div>
+                    <?= sp_empty_state(
+                        'ri-camera-lens-line',
+                        'Your package suggestions will appear here',
+                        'Adjust the preferences and select “Recommend packages.”'
+                    ) ?>
                 </div>
             </div>
         </div>
     </section>
 
     <section class="row g-4" id="booking-calendar">
-        <div class="col-xl-8">
+        <div class="col-xl-8" data-sp-reveal="left">
             <div class="surface">
-                <div class="surface-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
-                    <div><i class="ri-calendar-event-line text-danger me-2"></i>Appointment Calendar</div>
-                    <button class="btn btn-primary btn-sm" type="button" id="newBookingButton"><i class="ri-add-line me-1"></i>New booking request</button>
+                <div class="surface-header flex-column flex-md-row align-items-md-center">
+                    <span><i class="ri-calendar-event-line me-2 text-danger"></i>Appointment calendar</span>
+                    <button class="btn btn-primary btn-sm" type="button" id="newBookingButton">
+                        <i class="ri-add-line me-1"></i>New booking request
+                    </button>
                 </div>
                 <div id="calendar"></div>
             </div>
-            <div class="small text-secondary-custom mt-2"><span class="badge soft-badge me-1">Reserved</span> Gray entries show occupied periods without exposing another client's details. One morning and one afternoon appointment are available per date.</div>
+            <p class="form-hint mt-2">
+                <span class="badge soft-badge me-1">Reserved</span>
+                Grey entries show occupied periods without exposing another client's details. One morning and one afternoon appointment are available per date.
+            </p>
         </div>
-        <div class="col-xl-4">
+        <div class="col-xl-4" data-sp-reveal="right">
             <div class="surface">
-                <div class="surface-header d-flex justify-content-between align-items-center">
-                    <span><i class="ri-radar-line text-info me-2"></i>Service Progress</span>
-                    <span class="small text-secondary-custom" id="liveIndicator"><i class="ri-refresh-line"></i> Live</span>
-                </div>
+                <?= sp_surface_header(
+                    'ri-radar-line',
+                    'Service progress',
+                    '<span class="sp-live"><span class="sp-live__dot"></span>Live</span>'
+                ) ?>
                 <div class="surface-body" id="details-pane" aria-live="polite">
-                    <div class="text-center py-5 text-secondary-custom">
-                        <i class="ri-cursor-line d-block fs-2 mb-2"></i>
-                        <p class="mb-0">Select one of your sessions on the calendar to see its status and update history.</p>
-                    </div>
+                    <?= sp_empty_state(
+                        'ri-cursor-line',
+                        'No session selected',
+                        'Select one of your sessions on the calendar to see its status and update history.'
+                    ) ?>
                 </div>
             </div>
-            <div class="small text-secondary-custom mt-2"><i class="ri-time-line me-1"></i>Progress is refreshed automatically every 30 seconds.</div>
+            <p class="form-hint mt-2"><i class="ri-time-line me-1"></i>Progress is refreshed automatically every 30 seconds.</p>
         </div>
     </section>
 </main>
 
 <div class="modal fade" id="bookingModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <form id="bookingForm" class="modal-content surface" action="process_client_booking.php" method="post">
-            <div class="modal-header border-secondary">
-                <div><div class="eyebrow mb-1">Appointment request</div><h2 class="modal-title fs-5" id="modalTitle">New booking request</h2></div>
+        <form id="bookingForm" class="modal-content" action="process_client_booking.php" method="post" data-sp-ajax="1">
+            <div class="modal-header">
+                <div>
+                    <div class="sp-eyebrow mb-1">Appointment request</div>
+                    <h2 class="modal-title fs-5" id="modalTitle">New booking request</h2>
+                </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -196,42 +159,52 @@ function phodio_h(string $value): string
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label" for="sessionTitle">Session title / occasion</label>
-                        <input class="form-control" type="text" name="title" id="sessionTitle" maxlength="255" placeholder="e.g. Graduation portraits" required>
+                        <input class="form-control" type="text" name="title" id="sessionTitle" maxlength="255"
+                               placeholder="e.g. Graduation portraits" required>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="serviceType">Session type</label>
                         <select class="form-select" name="service_type" id="serviceType" required>
                             <?php foreach ($serviceTypes as $key => $label): ?>
-                                <option value="<?= phodio_h($key) ?>"><?= phodio_h($label) ?></option>
+                                <option value="<?= sp_h($key) ?>"><?= sp_h($label) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="attendeeCount">Number of people</label>
                         <select class="form-select" name="attendee_count" id="attendeeCount" required>
-                            <option value="1">1 person</option><option value="2">2 people</option><option value="3">3 people</option><option value="4">4 people</option>
+                            <option value="1">1 person</option>
+                            <option value="2">2 people</option>
+                            <option value="3">3 people</option>
+                            <option value="4">4 people</option>
                         </select>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="packageSelect">Photography package</label>
                         <select class="form-select" name="package_key" id="packageSelect" required>
                             <?php foreach ($groupedPackages as $category => $items): ?>
-                                <optgroup label="<?= phodio_h($category) ?>">
+                                <optgroup label="<?= sp_h($category) ?>">
                                     <?php foreach ($items as $package): ?>
-                                        <option value="<?= phodio_h($package['key']) ?>" data-price="<?= (int) $package['price'] ?>" data-min="<?= (int) $package['min_people'] ?>" data-max="<?= (int) $package['max_people'] ?>"><?= phodio_h($package['name']) ?> — ₱<?= number_format($package['price']) ?> · <?= phodio_h($package['duration']) ?></option>
+                                        <option value="<?= sp_h($package['key']) ?>"
+                                                data-price="<?= (int) $package['price'] ?>"
+                                                data-min="<?= (int) $package['min_people'] ?>"
+                                                data-max="<?= (int) $package['max_people'] ?>">
+                                            <?= sp_h($package['name']) ?> — <?= sp_h(sp_money($package['price'])) ?> · <?= sp_h($package['duration']) ?>
+                                        </option>
                                     <?php endforeach; ?>
                                 </optgroup>
                             <?php endforeach; ?>
                         </select>
-                        <div class="form-text text-secondary-custom" id="packagePriceText"></div>
+                        <div class="form-hint mt-1" id="packagePriceText"></div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="motif">Theme / motif</label>
-                        <input class="form-control" type="text" name="motif" id="motif" maxlength="100" placeholder="e.g. Vintage, minimalist, floral" required>
+                        <input class="form-control" type="text" name="motif" id="motif" maxlength="100"
+                               placeholder="e.g. Vintage, minimalist, floral" required>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label" for="bookingDate">Preferred date</label>
-                        <input class="form-control" type="date" name="date" id="bookingDate" min="<?= phodio_h($today) ?>" required>
+                        <input class="form-control" type="date" name="date" id="bookingDate" min="<?= sp_h($today) ?>" required>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label" for="bookingPeriod">Available period</label>
@@ -241,14 +214,18 @@ function phodio_h(string $value): string
                         </select>
                     </div>
                     <div class="col-12">
-                        <label class="form-label" for="clientNotes">Requirements or special requests <span class="text-secondary-custom fw-normal">(optional)</span></label>
-                        <textarea class="form-control" name="client_notes" id="clientNotes" rows="3" maxlength="1000" placeholder="Share anything the studio should know about your session."></textarea>
+                        <label class="form-label" for="clientNotes">Requirements or special requests <span class="sp-faint fw-normal text-lowercase">(optional)</span></label>
+                        <textarea class="form-control" name="client_notes" id="clientNotes" rows="3" maxlength="1000"
+                                  placeholder="Share anything the studio should know about your session."></textarea>
                     </div>
                 </div>
-                <div class="alert alert-dark border-secondary small mt-3 mb-0"><i class="ri-information-line me-1"></i>Requests begin as <strong>Pending</strong>. The selected period is held while the studio reviews and confirms your booking.</div>
-                <div class="alert alert-danger d-none mt-3 mb-0" id="bookingError" role="alert"></div>
+                <div class="sp-alert sp-alert--info mt-3 mb-0">
+                    <i class="ri-information-line"></i>
+                    <div>Requests begin as <strong>Pending</strong>. The selected period is held while the studio reviews and confirms your booking.</div>
+                </div>
+                <div class="sp-alert sp-alert--danger d-none mt-3 mb-0" id="bookingError" role="alert"></div>
             </div>
-            <div class="modal-footer border-secondary">
+            <div class="modal-footer">
                 <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Back</button>
                 <button type="submit" class="btn btn-primary px-4" id="saveBookingButton">Send request</button>
             </div>
@@ -256,18 +233,9 @@ function phodio_h(string $value): string
     </div>
 </div>
 
-<div class="toast-container position-fixed bottom-0 end-0 p-3">
-    <div class="toast text-bg-dark border-secondary" id="clientToast" role="status" aria-live="polite" aria-atomic="true">
-        <div class="d-flex"><div class="toast-body" id="clientToastMessage"></div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script>
 const bookingForm = document.getElementById('bookingForm');
 const bookingModal = new bootstrap.Modal(document.getElementById('bookingModal'));
-const toast = new bootstrap.Toast(document.getElementById('clientToast'), {delay: 4200});
 const bookingError = document.getElementById('bookingError');
 const dateInput = document.getElementById('bookingDate');
 const periodSelect = document.getElementById('bookingPeriod');
@@ -278,9 +246,16 @@ let selectedBookingId = null;
 let editingBookingId = null;
 const queryBookingId = Number(new URLSearchParams(window.location.search).get('booking')) || null;
 let openedLinkedBooking = false;
+const moneyPrefix = '<?= sp_h(SP_MONEY_PREFIX) ?>';
+function formatMoney(value) {
+    return moneyPrefix + Number(value || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+}
+function showToast(message, type = 'info') {
+    SoulprintUI.toast(message, type);
 }
 async function parseApiResponse(response) {
     const body = await response.text();
@@ -293,16 +268,12 @@ async function parseApiResponse(response) {
         throw new Error(`The server returned an invalid API response (HTTP ${response.status}).`);
     }
 }
-function showToast(message) {
-    document.getElementById('clientToastMessage').textContent = message;
-    toast.show();
-}
 function eventHasReservedPeriod(date, period) {
     if (!bookingCalendar) return false;
     return bookingCalendar.getEvents().some(event => event.startStr.slice(0, 10) === date && event.extendedProps.period === period && event.extendedProps.reserved && String(event.id) !== String(editingBookingId || ''));
 }
 function periodHasStarted(date, period) {
-    if (date !== '<?= phodio_h($today) ?>') return false;
+    if (date !== '<?= sp_h($today) ?>') return false;
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     return currentMinutes >= (period === 'AM' ? 9 * 60 : 13 * 60);
@@ -333,7 +304,11 @@ function updatePeriodAvailability(preferred = null) {
 function refreshPackageDetails() {
     const option = packageSelect.selectedOptions[0];
     if (!option) return;
-    document.getElementById('packagePriceText').textContent = `Package price: ₱${Number(option.dataset.price).toLocaleString()} · supports ${option.dataset.min === option.dataset.max ? option.dataset.max : `${option.dataset.min}–${option.dataset.max}`} ${Number(option.dataset.max) === 1 ? 'person' : 'people'}.`;
+    const size = option.dataset.min === option.dataset.max
+        ? option.dataset.max
+        : `${option.dataset.min}–${option.dataset.max}`;
+    document.getElementById('packagePriceText').textContent =
+        `Package price: ${formatMoney(option.dataset.price)} · supports ${size} ${Number(option.dataset.max) === 1 ? 'person' : 'people'}.`;
     const count = Number(attendeeSelect.value);
     const min = Number(option.dataset.min);
     const max = Number(option.dataset.max);
@@ -349,7 +324,7 @@ function resetBookingForm(date = '') {
     document.getElementById('saveBookingButton').textContent = 'Send request';
     bookingError.classList.add('d-none');
     dateInput.value = date;
-    dateInput.min = '<?= phodio_h($today) ?>';
+    dateInput.min = '<?= sp_h($today) ?>';
     attendeeSelect.value = '1';
     refreshPackageDetails();
     updatePeriodAvailability('AM');
@@ -361,23 +336,29 @@ function buildProgressHtml(booking) {
     }[booking.status] || 'status-pending';
     const time = booking.period === 'AM' ? '9:00 AM · Morning' : '1:00 PM · Afternoon';
     const updates = Array.isArray(booking.updates) ? booking.updates : [];
-    const history = updates.length ? updates.map(item => `
-        <div class="timeline-item">
-            <div class="d-flex justify-content-between gap-2"><strong>${escapeHtml(item.status)}</strong><small class="text-secondary-custom">${escapeHtml(item.created_at)}</small></div>
-            <div class="small text-secondary-custom mt-1">${escapeHtml(item.note || 'Status updated by the studio.')}</div>
-        </div>`).join('') : '<p class="small text-secondary-custom mb-0">No progress updates have been posted yet.</p>';
-    const appointmentPassed = booking.booking_date < '<?= phodio_h($today) ?>' || periodHasStarted(booking.booking_date, booking.period);
+    const history = updates.length ? updates.map((item, index) => `
+        <div class="sp-timeline__item ${index === updates.length - 1 ? 'sp-pop' : 'sp-timeline__item--muted'}">
+            <div class="d-flex justify-content-between gap-2">
+                <span class="sp-timeline__title">${escapeHtml(item.status)}</span>
+                <small class="sp-timeline__meta">${escapeHtml(item.created_at)}</small>
+            </div>
+            <div class="sp-timeline__note">${escapeHtml(item.note || 'Status updated by the studio.')}</div>
+        </div>`).join('') : '<p class="small muted mb-0">No progress updates have been posted yet.</p>';
+    const appointmentPassed = booking.booking_date < '<?= sp_h($today) ?>' || periodHasStarted(booking.booking_date, booking.period);
     const canEdit = booking.status === 'Pending' && !appointmentPassed;
     const canCancel = ['Pending','Confirmed'].includes(booking.status) && !appointmentPassed;
     return `
         <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
-            <div><h3 class="h6 mb-1">${escapeHtml(booking.title)}</h3><div class="small text-secondary-custom">${escapeHtml(booking.package_type || 'Photography service')}</div></div>
+            <div>
+                <h3 class="h6 fw-bold mb-1">${escapeHtml(booking.title)}</h3>
+                <div class="small muted">${escapeHtml(booking.package_type || 'Photography service')}</div>
+            </div>
             <span class="status-chip ${statusClass}">${escapeHtml(booking.status)}</span>
         </div>
-        <table class="table table-borderless table-sm text-white booking-table mb-3">
+        <table class="table table-borderless table-sm sp-detail-table mb-3">
             <tr><td>Session type</td><td>${escapeHtml(booking.service_type || '—')}</td></tr>
             <tr><td>Package</td><td>${escapeHtml(booking.package_type || '—')}</td></tr>
-            <tr><td>Price</td><td>₱${Number(booking.price || 0).toLocaleString()}</td></tr>
+            <tr><td>Price</td><td class="sp-price">${formatMoney(booking.price)}</td></tr>
             <tr><td>Theme</td><td>${escapeHtml(booking.motif || '—')}</td></tr>
             <tr><td>Group size</td><td>${Number(booking.attendee_count || 1)} ${Number(booking.attendee_count || 1) === 1 ? 'person' : 'people'}</td></tr>
             <tr><td>Schedule</td><td>${escapeHtml(booking.booking_date)} · ${time}</td></tr>
@@ -385,10 +366,10 @@ function buildProgressHtml(booking) {
         </table>
         <div class="d-flex gap-2 mb-4">
             ${canEdit ? '<button type="button" class="btn btn-sm btn-outline-light" id="editBookingButton"><i class="ri-edit-line me-1"></i>Edit request</button>' : ''}
-            ${canCancel ? '<button type="button" class="btn btn-sm btn-outline-danger" id="cancelBookingButton"><i class="ri-close-circle-line me-1"></i>Cancel request</button>' : ''}
+            ${canCancel ? '<button type="button" class="btn btn-sm btn-outline-light text-danger" id="cancelBookingButton"><i class="ri-close-circle-line me-1"></i>Cancel request</button>' : ''}
         </div>
         <div class="fw-bold small mb-3"><i class="ri-git-commit-line me-1 text-danger"></i>Progress updates</div>
-        <div class="timeline">${history}</div>`;
+        <div class="sp-timeline">${history}</div>`;
 }
 async function loadBookingDetails(id, silent = false) {
     try {
@@ -410,7 +391,7 @@ async function loadBookingDetails(id, silent = false) {
         const cancelButton = document.getElementById('cancelBookingButton');
         if (cancelButton) cancelButton.addEventListener('click', () => cancelBooking(data.booking.id));
     } catch (error) {
-        if (!silent) showToast(error.message);
+        if (!silent) showToast(error.message, 'danger');
     }
 }
 function editBooking(booking) {
@@ -432,7 +413,11 @@ function editBooking(booking) {
     bookingModal.show();
 }
 async function cancelBooking(id) {
-    if (!window.confirm('Cancel this booking request? The appointment period will be released.')) return;
+    const confirmed = await SoulprintUI.confirm(
+        'Cancel this booking request?',
+        'The appointment period will be released for other clients.'
+    );
+    if (!confirmed) return;
     const formData = new FormData();
     formData.set('action','cancel');
     formData.set('booking_id',String(id));
@@ -440,10 +425,10 @@ async function cancelBooking(id) {
         const response = await fetch('process_client_booking.php',{method:'POST',body:formData});
         const data = await parseApiResponse(response);
         if (!response.ok || !data.ok) throw new Error(data.message || 'Unable to cancel this request.');
-        showToast(data.message);
+        showToast(data.message, 'success');
         bookingCalendar.refetchEvents();
         await loadBookingDetails(id, true);
-    } catch (error) { showToast(error.message); }
+    } catch (error) { showToast(error.message, 'danger'); }
 }
 
 const calendarEl = document.getElementById('calendar');
@@ -458,19 +443,19 @@ bookingCalendar = new FullCalendar.Calendar(calendarEl, {
         if (info.event.extendedProps.isOwn) {
             loadBookingDetails(info.event.id);
         } else {
-            showToast('That appointment period is reserved. Choose another period or date.');
+            showToast('That appointment period is reserved. Choose another period or date.', 'warning');
         }
     },
     dateClick(info) {
         const date = info.dateStr.slice(0,10);
-        if (date < '<?= phodio_h($today) ?>') {
-            showToast('Past dates are view-only. Select a future date to make a new request.');
+        if (date < '<?= sp_h($today) ?>') {
+            showToast('Past dates are view-only. Select a future date to make a new request.', 'warning');
             return;
         }
         const amTaken = eventHasReservedPeriod(date,'AM') || periodHasStarted(date,'AM');
         const pmTaken = eventHasReservedPeriod(date,'PM') || periodHasStarted(date,'PM');
         if (amTaken && pmTaken) {
-            showToast('No appointment periods remain available for this date.');
+            showToast('No appointment periods remain available for this date.', 'warning');
             return;
         }
         resetBookingForm(date);
@@ -499,19 +484,22 @@ bookingForm.addEventListener('submit', async event => {
     if (!bookingForm.reportValidity()) return;
     const button = document.getElementById('saveBookingButton');
     button.disabled = true;
-    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving request';
+    button.innerHTML = '<span class="sp-spinner me-2"></span>Saving request';
     try {
         const response = await fetch(bookingForm.getAttribute('action'),{method:'POST',body:new FormData(bookingForm)});
         const data = await parseApiResponse(response);
         if (!response.ok || !data.ok) throw new Error(data.message || 'Could not save the booking request.');
         bookingModal.hide();
-        showToast(data.message);
+        showToast(data.message, 'success');
         bookingCalendar.refetchEvents();
         selectedBookingId = Number(data.booking_id);
         setTimeout(() => loadBookingDetails(selectedBookingId,true), 250);
     } catch (error) {
-        bookingError.textContent = error.message;
+        bookingError.innerHTML = '<i class="ri-error-warning-line"></i><div></div>';
+        bookingError.lastElementChild.textContent = error.message;
         bookingError.classList.remove('d-none');
+        bookingError.classList.add('sp-shake');
+        setTimeout(() => bookingError.classList.remove('sp-shake'), 600);
     } finally {
         button.disabled = false;
         button.textContent = document.getElementById('bookingIdInput').value ? 'Update request' : 'Send request';
@@ -524,25 +512,35 @@ document.getElementById('recommendationForm').addEventListener('submit', async e
     const button = document.getElementById('recommendButton');
     const results = document.getElementById('recommendationResults');
     button.disabled = true;
-    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Finding matches';
-    results.innerHTML = '<div class="text-center py-5 text-secondary-custom"><span class="spinner-border spinner-border-sm me-2"></span>Matching your preferences to studio packages…</div>';
+    button.innerHTML = '<span class="sp-spinner me-2"></span>Finding matches';
+    results.innerHTML = `
+        <div class="sp-skeleton sp-skeleton--title"></div>
+        <div class="sp-skeleton sp-skeleton--block mb-3"></div>
+        <div class="sp-skeleton sp-skeleton--text"></div>
+        <div class="sp-skeleton sp-skeleton--text" style="width:80%"></div>`;
     try {
         const response = await fetch('recommend_packages.php',{method:'POST',body:new FormData(form)});
         const data = await parseApiResponse(response);
         if (!response.ok || !data.ok) throw new Error(data.message || 'Could not generate package recommendations.');
         if (!data.recommendations.length) {
-            results.innerHTML = '<div class="alert alert-warning mb-0">No package currently matches that group size. Try adjusting your group size.</div>';
+            results.innerHTML = '<div class="sp-alert sp-alert--warning mb-0"><i class="ri-alert-line"></i><div>No package currently matches that group size. Try adjusting your group size.</div></div>';
             return;
         }
         results.innerHTML = `<div class="row g-3">${data.recommendations.map((item,index) => `
             <div class="col-12 ${data.recommendations.length > 1 ? 'col-md-6' : ''}">
-                <article class="rec-card">
+                <article class="sp-rec-card sp-pop" style="--sp-delay:${index * 90}ms">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                        <div><div class="small text-secondary-custom">${escapeHtml(item.category)}${index === 0 ? ' · Best match' : ''}</div><h3 class="h6 fw-bold mt-1 mb-0">${escapeHtml(item.name)}</h3></div>
-                        <span class="badge match-score">${Number(item.score)}% match</span>
+                        <div>
+                            <div class="small muted">${escapeHtml(item.category)}${index === 0 ? ' · Best match' : ''}</div>
+                            <h3 class="h6 fw-bold mt-1 mb-0">${escapeHtml(item.name)}</h3>
+                        </div>
+                        <span class="badge sp-match-score">${Number(item.score)}% match</span>
                     </div>
-                    <div class="d-flex gap-3 my-3"><strong>₱${Number(item.price).toLocaleString()}</strong><span class="text-secondary-custom">${escapeHtml(item.duration)}</span></div>
-                    <ul class="list-unstyled rec-reason mb-3">${item.reasons.map(reason => `<li class="mb-1"><i class="ri-check-line text-success me-1"></i>${escapeHtml(reason)}</li>`).join('')}</ul>
+                    <div class="d-flex gap-3 my-3 align-items-baseline">
+                        <strong class="sp-price">${formatMoney(item.price)}</strong>
+                        <span class="muted small">${escapeHtml(item.duration)}</span>
+                    </div>
+                    <ul class="list-unstyled sp-rec-reason mb-3">${item.reasons.map(reason => `<li class="mb-1"><i class="ri-check-line text-success me-1"></i>${escapeHtml(reason)}</li>`).join('')}</ul>
                     <button type="button" class="btn btn-sm btn-outline-light w-100 use-recommendation" data-key="${escapeHtml(item.key)}" data-price="${Number(item.price)}">Use this package</button>
                 </article>
             </div>`).join('')}</div>`;
@@ -560,7 +558,7 @@ document.getElementById('recommendationForm').addEventListener('submit', async e
             bookingModal.show();
         }));
     } catch (error) {
-        results.innerHTML = `<div class="alert alert-danger mb-0">${escapeHtml(error.message)}</div>`;
+        results.innerHTML = `<div class="sp-alert sp-alert--danger mb-0"><i class="ri-error-warning-line"></i><div>${escapeHtml(error.message)}</div></div>`;
     } finally {
         button.disabled = false;
         button.innerHTML = '<i class="ri-magic-line me-2"></i>Recommend packages';
@@ -572,5 +570,4 @@ setInterval(() => {
     if (selectedBookingId) loadBookingDetails(selectedBookingId,true);
 }, 30000);
 </script>
-</body>
-</html>
+<?php include __DIR__ . '/includes/page_bottom.php'; ?>

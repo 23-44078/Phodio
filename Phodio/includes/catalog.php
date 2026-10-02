@@ -1,6 +1,6 @@
 <?php
 /**
- * Soul Print's service catalog and preference-matching recommendation engine.
+ * SOULPRINT service catalog and preference-matching recommendation engine.
  * The catalog is the single source of truth for client booking and recommendations.
  */
 

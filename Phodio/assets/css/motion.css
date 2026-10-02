@@ -1,0 +1,327 @@
+/* ============================================================
+   SOULPRINT — Motion layer (motion.css)
+   All animation primitives for the product. Every effect here is
+   disabled automatically when the user asks for reduced motion.
+   ============================================================ */
+
+:root {
+    --sp-ease: cubic-bezier(.22, 1, .36, 1);
+    --sp-ease-soft: cubic-bezier(.4, 0, .2, 1);
+    --sp-fast: .18s;
+    --sp-med: .34s;
+    --sp-slow: .6s;
+    --sp-stagger: 70ms;
+}
+
+/* ---------- Keyframes ---------- */
+@keyframes sp-fade-up {
+    from { opacity: 0; transform: translate3d(0, 16px, 0); }
+    to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes sp-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes sp-fade-down {
+    from { opacity: 0; transform: translate3d(0, -12px, 0); }
+    to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes sp-scale-in {
+    from { opacity: 0; transform: scale(.955) translateY(10px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes sp-slide-in-end {
+    from { opacity: 0; transform: translate3d(28px, 0, 0); }
+    to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes sp-slide-in-start {
+    from { opacity: 0; transform: translate3d(-100%, 0, 0); }
+    to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes sp-pop {
+    0%   { transform: scale(.6); opacity: 0; }
+    60%  { transform: scale(1.12); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes sp-pulse-ring {
+    0%   { box-shadow: 0 0 0 0 rgba(239, 68, 68, .45); }
+    70%  { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+@keyframes sp-breathe {
+    0%, 100% { opacity: .55; transform: scale(1); }
+    50%      { opacity: 1; transform: scale(1.35); }
+}
+
+@keyframes sp-shimmer {
+    from { background-position: -220% 0; }
+    to   { background-position: 220% 0; }
+}
+
+@keyframes sp-float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-7px); }
+}
+
+@keyframes sp-spin { to { transform: rotate(360deg); } }
+
+@keyframes sp-shake {
+    0%, 100% { transform: translateX(0); }
+    18%      { transform: translateX(-7px); }
+    36%      { transform: translateX(6px); }
+    54%      { transform: translateX(-4px); }
+    72%      { transform: translateX(3px); }
+    90%      { transform: translateX(-1px); }
+}
+
+@keyframes sp-ripple {
+    from { transform: scale(0); opacity: .45; }
+    to   { transform: scale(2.6); opacity: 0; }
+}
+
+@keyframes sp-glow-drift {
+    0%, 100% { opacity: .55; }
+    50%      { opacity: .95; }
+}
+
+@keyframes sp-bar-grow {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+}
+
+/* ---------- Scroll reveal ---------- */
+/* Elements start hidden; ui.js adds .is-visible when they enter the viewport. */
+[data-sp-reveal] {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+    transition:
+        opacity var(--sp-slow) var(--sp-ease),
+        transform var(--sp-slow) var(--sp-ease);
+    transition-delay: var(--sp-delay, 0ms);
+    will-change: opacity, transform;
+}
+
+[data-sp-reveal="left"]  { transform: translate3d(-22px, 0, 0); }
+[data-sp-reveal="right"] { transform: translate3d(22px, 0, 0); }
+[data-sp-reveal="zoom"]  { transform: scale(.94); }
+[data-sp-reveal="none"]  { transform: none; }
+
+[data-sp-reveal].is-visible {
+    opacity: 1;
+    transform: none;
+}
+
+/* Fallback: if JS never runs, nothing stays invisible. */
+html.sp-no-js [data-sp-reveal] { opacity: 1 !important; transform: none !important; }
+
+/* ---------- Page enter ---------- */
+.sp-enter { animation: sp-fade-up var(--sp-slow) var(--sp-ease) both; }
+.sp-enter-1 { animation-delay: 40ms; }
+.sp-enter-2 { animation-delay: 110ms; }
+.sp-enter-3 { animation-delay: 180ms; }
+.sp-enter-4 { animation-delay: 250ms; }
+
+/* ---------- Hover affordances ---------- */
+.sp-lift { transition: transform .25s var(--sp-ease-soft), box-shadow .25s var(--sp-ease-soft), border-color .25s ease; }
+.sp-lift:hover { transform: translateY(-3px); box-shadow: var(--sp-shadow); border-color: #39425a; }
+
+.sp-glow-hover { transition: box-shadow .28s ease, border-color .28s ease; }
+.sp-glow-hover:hover { border-color: var(--sp-brand-ring); box-shadow: var(--sp-glow); }
+
+.sp-pressable:active { transform: scale(.982); }
+
+.sp-icon-spin i { transition: transform .4s var(--sp-ease); display: inline-block; }
+.sp-icon-spin:hover i { transform: rotate(-12deg) scale(1.12); }
+
+/* Underline sweep for nav / inline links */
+.sp-underline {
+    position: relative;
+    display: inline-block;
+}
+
+.sp-underline::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -3px;
+    height: 2px;
+    width: 100%;
+    border-radius: 2px;
+    background: var(--sp-brand);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform .3s var(--sp-ease);
+}
+
+.sp-underline:hover::after,
+.sp-underline.is-active::after { transform: scaleX(1); }
+
+/* ---------- Live / activity indicator ---------- */
+.sp-live {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--sp-muted);
+}
+
+.sp-live__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--sp-success);
+    animation: sp-breathe 1.9s ease-in-out infinite;
+}
+
+.sp-live--danger .sp-live__dot { background: var(--sp-brand); }
+
+/* ---------- Skeleton loader ---------- */
+.sp-skeleton {
+    position: relative;
+    overflow: hidden;
+    background: #1a202c;
+    border-radius: 8px;
+    color: transparent !important;
+    user-select: none;
+    pointer-events: none;
+}
+
+.sp-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .07), transparent);
+    background-size: 220% 100%;
+    animation: sp-shimmer 1.5s linear infinite;
+}
+
+.sp-skeleton--text { height: .8rem; margin-bottom: .5rem; }
+.sp-skeleton--title { height: 1.15rem; width: 55%; margin-bottom: .7rem; }
+.sp-skeleton--block { height: 92px; }
+.sp-skeleton--circle { width: 42px; height: 42px; border-radius: 50%; }
+
+/* ---------- Progress / meter fill ---------- */
+.sp-grow-bar {
+    transform-origin: left center;
+    animation: sp-bar-grow 1s var(--sp-ease) both;
+}
+
+/* ---------- Spinner ---------- */
+.sp-spinner {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, .28);
+    border-top-color: #fff;
+    display: inline-block;
+    vertical-align: -3px;
+    animation: sp-spin .7s linear infinite;
+}
+
+/* ---------- Floating accent ---------- */
+.sp-float { animation: sp-float 6s ease-in-out infinite; }
+
+/* ---------- Pulse ring (used on the primary "new booking" dot) ---------- */
+.sp-pulse { animation: sp-pulse-ring 2.2s ease-out infinite; border-radius: 50%; }
+
+/* ---------- Alerts & feedback ---------- */
+.sp-shake { animation: sp-shake .5s var(--sp-ease-soft); }
+.sp-pop { animation: sp-pop .42s var(--sp-ease) both; }
+
+.sp-flash { animation: sp-fade-down .42s var(--sp-ease) both; }
+
+/* Ripple host (ui.js injects .sp-ripple spans) */
+.sp-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .5);
+    transform: scale(0);
+    pointer-events: none;
+    animation: sp-ripple .62s var(--sp-ease-soft) forwards;
+}
+
+/* ---------- Bootstrap overrides so BS animations match ---------- */
+.modal.fade .modal-dialog {
+    transition: transform .3s var(--sp-ease), opacity .3s ease;
+    transform: scale(.955) translateY(14px);
+}
+
+.modal.show .modal-dialog { transform: scale(1) translateY(0); }
+
+.toast.show { animation: sp-slide-in-end .38s var(--sp-ease) both; }
+
+.dropdown-menu {
+    background: var(--sp-surface-2);
+    border: 1px solid var(--sp-line);
+    border-radius: var(--sp-radius-sm);
+    box-shadow: var(--sp-shadow);
+    padding: .35rem;
+    animation: sp-fade-down .2s var(--sp-ease-soft) both;
+}
+
+.dropdown-item {
+    color: var(--sp-text-2);
+    border-radius: 7px;
+    font-size: .87rem;
+    transition: background-color .16s ease, color .16s ease, padding-left .16s ease;
+}
+
+.dropdown-item:hover, .dropdown-item:focus {
+    background: rgba(255, 255, 255, .06);
+    color: #fff;
+    padding-left: .9rem;
+}
+
+.dropdown-item-text { color: var(--sp-faint); }
+.dropdown-divider { border-color: var(--sp-line); }
+
+.collapse.navbar-collapse { transition: height .3s var(--sp-ease-soft); }
+
+/* ---------- Scroll progress bar (ui.js) ---------- */
+.sp-scroll-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 2px;
+    width: 100%;
+    z-index: 1080;
+    pointer-events: none;
+    background: transparent;
+}
+
+.sp-scroll-progress > span {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, var(--sp-brand), #ff9d9d);
+    box-shadow: 0 0 12px rgba(239, 68, 68, .55);
+    transition: width .12s linear;
+}
+
+/* ---------- Reduced motion: respect the user ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    [data-sp-reveal] { opacity: 1 !important; transform: none !important; }
+    .sp-live__dot { animation: none !important; opacity: 1; }
+    .sp-skeleton::after { animation: none !important; }
+    .sp-scroll-progress { display: none; }
+}
