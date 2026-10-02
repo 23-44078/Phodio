@@ -56,7 +56,7 @@ if (strlen($motif) > 100 || strlen($clientNotes) > 1000) {
     exit;
 }
 
-$color = str_contains($package['category'], 'Creative') || $package['backdrop'] ? '#a855f7' : ($package['category'] === 'Student Promo' ? '#10b981' : '#3b82f6');
+$color = strpos($package['category'], 'Creative') !== false || $package['backdrop'] ? '#a855f7' : ($package['category'] === 'Student Promo' ? '#10b981' : '#3b82f6');
 
 try {
     $conn->begin_transaction();

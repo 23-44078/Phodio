@@ -282,6 +282,17 @@ let openedLinkedBooking = false;
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 }
+async function parseApiResponse(response) {
+    const body = await response.text();
+    try {
+        return JSON.parse(body);
+    } catch (error) {
+        if (/<(?:!doctype|html|br|b|div)\b/i.test(body.slice(0, 500))) {
+            throw new Error(`The server returned an HTML error (HTTP ${response.status}) instead of JSON. Check the PHP/XAMPP error log and confirm the updated endpoint files are installed.`);
+        }
+        throw new Error(`The server returned an invalid API response (HTTP ${response.status}).`);
+    }
+}
 function showToast(message) {
     document.getElementById('clientToastMessage').textContent = message;
     toast.show();
@@ -385,7 +396,7 @@ async function loadBookingDetails(id, silent = false) {
             method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
             body:new URLSearchParams({id:String(id)})
         });
-        const data = await response.json();
+        const data = await parseApiResponse(response);
         if (!response.ok || !data.ok) throw new Error(data.message || 'Could not load this booking.');
         selectedBookingId = Number(data.booking.id);
         if (!openedLinkedBooking && queryBookingId === selectedBookingId && bookingCalendar) {
@@ -427,7 +438,7 @@ async function cancelBooking(id) {
     formData.set('booking_id',String(id));
     try {
         const response = await fetch('process_client_booking.php',{method:'POST',body:formData});
-        const data = await response.json();
+        const data = await parseApiResponse(response);
         if (!response.ok || !data.ok) throw new Error(data.message || 'Unable to cancel this request.');
         showToast(data.message);
         bookingCalendar.refetchEvents();
@@ -491,7 +502,7 @@ bookingForm.addEventListener('submit', async event => {
     button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving request';
     try {
         const response = await fetch(bookingForm.action,{method:'POST',body:new FormData(bookingForm)});
-        const data = await response.json();
+        const data = await parseApiResponse(response);
         if (!response.ok || !data.ok) throw new Error(data.message || 'Could not save the booking request.');
         bookingModal.hide();
         showToast(data.message);
@@ -517,7 +528,7 @@ document.getElementById('recommendationForm').addEventListener('submit', async e
     results.innerHTML = '<div class="text-center py-5 text-secondary-custom"><span class="spinner-border spinner-border-sm me-2"></span>Matching your preferences to studio packages…</div>';
     try {
         const response = await fetch('recommend_packages.php',{method:'POST',body:new FormData(form)});
-        const data = await response.json();
+        const data = await parseApiResponse(response);
         if (!response.ok || !data.ok) throw new Error(data.message || 'Could not generate package recommendations.');
         if (!data.recommendations.length) {
             results.innerHTML = '<div class="alert alert-warning mb-0">No package currently matches that group size. Try adjusting your group size.</div>';

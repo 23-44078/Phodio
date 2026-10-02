@@ -93,7 +93,7 @@ if ($date === date('Y-m-d') && date('H:i:s') >= $startTime) {
 $packageName = (string) $package['name'];
 $price = (float) $package['price'];
 $color = '#3b82f6';
-if (str_contains($package['category'], 'Creative') || $package['backdrop']) {
+if (strpos($package['category'], 'Creative') !== false || $package['backdrop']) {
     $color = '#a855f7';
 } elseif ($package['category'] === 'Student Promo') {
     $color = '#10b981';

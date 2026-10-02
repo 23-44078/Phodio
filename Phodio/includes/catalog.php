@@ -143,7 +143,7 @@ function phodio_recommend_packages(string $eventType, int $people, int $budget, 
             $score += 10;
             $reasons[] = 'Matches details in your requirements';
         }
-        if ($requirementStudent && str_contains($package['category'], 'Student')) {
+        if ($requirementStudent && strpos($package['category'], 'Student') !== false) {
             $score += 8;
             $reasons[] = 'Relevant to your student-related requirements';
         }
