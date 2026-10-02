@@ -16,6 +16,7 @@ if (isset($_POST['login'])) {
     $result = $stmt->get_result()->fetch_assoc();
 
     if ($result && password_verify($password, $result['password'])) {
+        session_regenerate_id(true);
         // Log the session
         $_SESSION['admin'] = $result['username'];
         

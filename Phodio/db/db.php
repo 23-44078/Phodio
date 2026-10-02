@@ -16,8 +16,8 @@ if ($conn->connect_error) {
 
 // Set character set to utf8mb4 (CRITICAL for password hashes and emojis)
 $conn->set_charset("utf8mb4");
+$conn->query("SET time_zone = '+08:00'");
 
-// Set the timezone to Philippine Standard Time (PST) 
-// This ensures your "Today" and "Monthly" views are accurate
+// Keep PHP date validation and SQL timestamps aligned to Philippine Time.
 date_default_timezone_set('Asia/Manila');
 ?>

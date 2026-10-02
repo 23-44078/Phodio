@@ -49,23 +49,55 @@ INSERT INTO `admin` (`id`, `username`, `password`, `created_at`) VALUES
 
 CREATE TABLE `bookings` (
   `id` int(11) NOT NULL,
-  `client_id` int(11) NOT NULL,
+  `client_id` int(11) DEFAULT NULL,
   `title` varchar(255) NOT NULL,
+  `service_type` varchar(80) DEFAULT NULL,
+  `package_key` varchar(80) DEFAULT NULL,
   `package_type` varchar(100) DEFAULT NULL,
   `motif` varchar(100) DEFAULT NULL,
   `price` decimal(10,2) DEFAULT NULL,
   `booking_date` date DEFAULT NULL,
   `start_time` time DEFAULT NULL,
-  `color_code` varchar(7) DEFAULT NULL
+  `slot_period` enum('AM','PM') DEFAULT NULL,
+  `color_code` varchar(7) DEFAULT NULL,
+  `attendee_count` tinyint(3) unsigned NOT NULL DEFAULT 1,
+  `client_notes` text DEFAULT NULL,
+  `status` varchar(32) NOT NULL DEFAULT 'Confirmed',
+  `status_note` text DEFAULT NULL,
+  `status_updated_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `bookings`
 --
 
-INSERT INTO `bookings` (`id`, `client_id`, `title`, `package_type`, `motif`, `price`, `booking_date`, `start_time`, `color_code`) VALUES
-(1, 2, '', 'Solo|350|20min', 'Princess', NULL, '2026-03-30', '09:42:00', '#ef4444'),
-(2, 2, '', 'Solo|350|20min', 'Grad', NULL, '2026-03-30', '09:43:00', '#ef4444');
+INSERT INTO `bookings` (`id`, `client_id`, `title`, `service_type`, `package_key`, `package_type`, `motif`, `price`, `booking_date`, `start_time`, `slot_period`, `color_code`, `attendee_count`, `status`, `status_note`, `status_updated_at`) VALUES
+(1, 2, 'Princess portrait session', 'portrait', 'self_solo', 'Self Photography — Solo', 'Princess', 350.00, '2026-03-30', '09:42:00', NULL, '#3b82f6', 1, 'Confirmed', 'Imported appointment', '2026-03-30 09:00:00'),
+(2, 2, 'Graduation portrait session', 'graduation', 'self_solo', 'Self Photography — Solo', 'Graduation', 350.00, '2026-03-30', '09:43:00', NULL, '#3b82f6', 1, 'Confirmed', 'Imported appointment', '2026-03-30 09:00:00');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `booking_updates`
+--
+
+CREATE TABLE `booking_updates` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `booking_id` int(11) NOT NULL,
+  `status` varchar(32) NOT NULL,
+  `note` text NOT NULL,
+  `actor_type` enum('client','admin','system') NOT NULL DEFAULT 'system',
+  `actor_id` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `booking_updates_booking_id` (`booking_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `booking_updates` (`booking_id`, `status`, `note`, `actor_type`, `created_at`) VALUES
+(1, 'Confirmed', 'Imported appointment', 'system', '2026-03-30 09:00:00'),
+(2, 'Confirmed', 'Imported appointment', 'system', '2026-03-30 09:00:00');
 
 -- --------------------------------------------------------
 
@@ -151,7 +183,10 @@ ALTER TABLE `admin`
 -- Indexes for table `bookings`
 --
 ALTER TABLE `bookings`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `booking_day_slot` (`booking_date`,`slot_period`),
+  ADD KEY `bookings_client_status` (`client_id`,`status`),
+  ADD KEY `bookings_date_status` (`booking_date`,`status`);
 
 --
 -- Indexes for table `daily_tracker`
