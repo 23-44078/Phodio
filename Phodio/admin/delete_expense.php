@@ -1,5 +1,6 @@
 <?php
 include 'functions.php';
+checkLogin();
 
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
@@ -10,7 +11,7 @@ if (isset($_GET['id'])) {
 
     if ($stmt->execute()) {
         // Redirect back to expenses page with a success message
-        header("Location: expenses.php?msg=deleted");
+        header("Location: expenses.php?status=deleted");
     } else {
         echo "Error deleting record: " . $conn->error;
     }

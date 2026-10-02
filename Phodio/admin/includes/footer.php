@@ -1,4 +1,9 @@
-</main> <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-</body>
-</html>
+<?php
+/**
+ * SOULPRINT — admin console chrome (closes the page).
+ * Pair this with admin/includes/header.php.
+ */
+?>
+    </div>
+</main>
+<?php require __DIR__ . '/../../includes/page_bottom.php'; ?>

@@ -1,5 +1,6 @@
 <?php
 include 'functions.php';
+checkLogin();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $date = $_POST['track_date'];
@@ -15,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $stmt->bind_param("sdiidii", $date, $income, $clients, $target, $income, $clients, $target);
 
     if ($stmt->execute()) {
-        header("Location: tracker.php?status=success");
+        header("Location: tracker.php?status=saved");
     } else {
         echo "Error: " . $conn->error;
     }

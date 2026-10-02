@@ -1,79 +1,70 @@
+<?php
+/**
+ * SOULPRINT — admin sidebar navigation.
+ * Rendered by admin/includes/header.php on every admin screen.
+ */
+require_once __DIR__ . '/../includes/ui.php';
 
-<header class="main-header d-lg-none">
-    <div class="d-flex justify-content-between align-items-center w-100">
-        <div class="header-logo">
-            SOUL<span style="color:var(--accent-red)">PRINT</span>
-        </div>
-        <button class="menu-toggle-btn" onclick="toggleSidebar()">
-            <i class="ri-menu-3-line"></i>
+$adminUser = (string) ($_SESSION['admin'] ?? '');
+$currentFile = basename($_SERVER['PHP_SELF'] ?? '');
+
+$adminNav = [
+    'dashboard.php' => ['ri-dashboard-3-line', 'Dashboard'],
+    'bookings.php' => ['ri-calendar-event-line', 'Bookings'],
+    'expenses.php' => ['ri-wallet-3-line', 'Expenses'],
+    'liabilities.php' => ['ri-bank-card-line', 'Liabilities'],
+    'tracker.php' => ['ri-line-chart-line', 'Daily Tracker'],
+];
+?>
+<aside class="sp-sidebar" id="mainSidebar" aria-label="Admin navigation">
+    <div class="sp-sidebar__head">
+        <a href="dashboard.php" class="text-decoration-none"><?= sp_brand() ?></a>
+        <button class="btn-icon d-lg-none" type="button" data-sp-sidebar-toggle aria-label="Close navigation">
+            <i class="ri-close-line ri-lg"></i>
         </button>
     </div>
-</header>
 
-<div class="sidebar" id="mainSidebar">
-    <div class="sidebar-header d-flex justify-content-between align-items-center">
-        <span>SOUL<span style="color:var(--accent-red)">PRINT</span></span>
-        <button class="btn d-lg-none text-white p-0" onclick="toggleSidebar()">
-            <i class="ri-close-line ri-xl"></i>
-        </button>
-    </div>
-    
-    <nav class="sidebar-menu">
-        <a href="dashboard.php" class="nav-link-custom <?= (basename($_SERVER['PHP_SELF']) == 'dashboard.php') ? 'active' : '' ?>">
-            <i class="ri-dashboard-line"></i> Dashboard
-        </a>
-        <a href="bookings.php" class="nav-link-custom <?= (basename($_SERVER['PHP_SELF']) == 'bookings.php') ? 'active' : '' ?>">
-            <i class="ri-calendar-event-line"></i> Bookings
-        </a>
-        <a href="expenses.php" class="nav-link-custom <?= (basename($_SERVER['PHP_SELF']) == 'expenses.php') ? 'active' : '' ?>">
-            <i class="ri-wallet-3-line"></i> Expenses
-        </a>
-        <a href="liabilities.php" class="nav-link-custom <?= (basename($_SERVER['PHP_SELF']) == 'liabilities.php') ? 'active' : '' ?>">
-            <i class="ri-bank-card-line"></i> Liabilities
-        </a>
-        <a href="tracker.php" class="nav-link-custom <?= (basename($_SERVER['PHP_SELF']) == 'tracker.php') ? 'active' : '' ?>">
-            <i class="ri-line-chart-line"></i> Daily Tracker
-        </a>
-        
-    <!--    <div class="mt-auto">
-            <a href="settings.php" class="nav-link-custom">
-                <i class="ri-settings-3-line"></i> Settings
+    <nav class="sp-sidebar__nav">
+        <p class="sp-sidebar__label">Studio</p>
+        <?php foreach ($adminNav as $href => [$icon, $label]): ?>
+            <a href="<?= sp_h($href) ?>"
+               class="sp-nav-link <?= $currentFile === $href ? 'is-active' : '' ?>"
+               <?= $currentFile === $href ? 'aria-current="page"' : '' ?>>
+                <i class="<?= sp_h($icon) ?>"></i>
+                <span><?= sp_h($label) ?></span>
             </a>
-        </div>-->
-        <div class="mt-auto">
-           
-            <a href="#" data-bs-toggle="modal" data-bs-target="#logoutModal" class="nav-link-custom text-danger fw-bold">
-                <i class="ri-logout-box-r-line"></i> Logout
+        <?php endforeach; ?>
+
+        <div class="sp-sidebar__foot">
+            <p class="sp-sidebar__label">Session</p>
+            <div class="sp-sidebar__user">
+                <span class="sp-avatar" aria-hidden="true"><?= sp_h(strtoupper(substr($adminUser !== '' ? $adminUser : 'A', 0, 1))) ?></span>
+                <span class="sp-sidebar__user-name" title="<?= sp_h($adminUser) ?>"><?= sp_h($adminUser !== '' ? $adminUser : 'Administrator') ?></span>
+            </div>
+            <a href="#" data-bs-toggle="modal" data-bs-target="#logoutModal" class="sp-nav-link sp-nav-link--danger">
+                <i class="ri-logout-box-r-line"></i>
+                <span>Log out</span>
             </a>
         </div>
     </nav>
-</div>
+</aside>
 
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<div class="sp-sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="modal fade" id="logoutModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="background: #1a1a1a; border-radius: 15px;">
-            <div class="modal-body p-5 text-center">
-                <div class="icon-circle mx-auto mb-4" style="background: rgba(239, 68, 68, 0.1); width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                    <i class="ri-logout-circle-line text-danger" style="font-size: 2rem;"></i>
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-body p-4 text-center">
+                <div class="sp-empty__icon mb-3" style="width:56px;height:56px;font-size:1.5rem">
+                    <i class="ri-logout-circle-line"></i>
                 </div>
-                <h4 class="fw-bold text-white mb-2">End Session?</h4>
-                <p class="text-muted mb-4">Are you sure you want to log out of the Soulprint Management System?</p>
-                
-                <div class="d-flex gap-3 justify-content-center">
-                    <button type="button" class="btn btn-dark px-4 py-2 border-secondary" data-bs-dismiss="modal" style="border-radius: 8px; font-weight: 600;">Cancel</button>
-                    <a href="logout.php" class="btn btn-danger px-4 py-2" style="border-radius: 8px; font-weight: 600; background: #ef4444;">Yes, Logout</a>
+                <h2 class="h5 fw-bold mb-2">End this session?</h2>
+                <p class="sp-subtitle mx-auto mb-4">You will be signed out of the <?= sp_h(SP_BRAND) ?> studio console.</p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="button" class="btn btn-outline-light px-3" data-bs-dismiss="modal">Cancel</button>
+                    <a href="logout.php" class="btn btn-danger px-3">Log out</a>
                 </div>
             </div>
         </div>
     </div>
 </div>
-<script>
-function toggleSidebar() {
-    document.getElementById('mainSidebar').classList.toggle('show');
-    document.getElementById('sidebarOverlay').classList.toggle('show');
-    // Prevent background scrolling when menu is open
-    document.body.style.overflow = document.getElementById('mainSidebar').classList.contains('show') ? 'hidden' : 'auto';
-}
-</script>

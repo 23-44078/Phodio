@@ -1,5 +1,6 @@
 <?php
 include 'functions.php';
+checkLogin();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $desc = $_POST['description'];
@@ -11,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $stmt->bind_param("sds", $desc, $amt, $date);
 
     if ($stmt->execute()) {
-        header("Location: expenses.php?status=success");
+        header("Location: expenses.php?status=saved");
     } else {
         echo "Error: " . $conn->error;
     }

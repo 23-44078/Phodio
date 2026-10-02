@@ -1,5 +1,6 @@
 <?php
 include 'functions.php';
+checkLogin();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $creditor = $_POST['creditor'];
@@ -11,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $stmt->bind_param("ssds", $creditor, $desc, $amt, $date);
 
     if ($stmt->execute()) {
-        header("Location: liabilities.php?status=success");
+        header("Location: liabilities.php?status=saved");
     } else {
         echo "Error: " . $conn->error;
     }
