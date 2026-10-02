@@ -501,7 +501,7 @@ bookingForm.addEventListener('submit', async event => {
     button.disabled = true;
     button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving request';
     try {
-        const response = await fetch(bookingForm.action,{method:'POST',body:new FormData(bookingForm)});
+        const response = await fetch(bookingForm.getAttribute('action'),{method:'POST',body:new FormData(bookingForm)});
         const data = await parseApiResponse(response);
         if (!response.ok || !data.ok) throw new Error(data.message || 'Could not save the booking request.');
         bookingModal.hide();
