@@ -27,6 +27,18 @@ After deploying:
 
 - Public client site: `https://<project>.vercel.app/` (redirects to the login page)
 - Admin panel: `https://<project>.vercel.app/admin/`
+- Health check: `https://<project>.vercel.app/health.php` (returns `"ok": true` when the database connection works)
+
+## Troubleshooting: "Database connection failed"
+
+The app now prints the exact reason under the message, but the usual causes are:
+
+1. **The variable was added after the deployment.** Environment variables do not apply to deployments that already exist. After adding/changing `DATABASE_URL`, open **Deployments** and click **Redeploy** on the latest one.
+2. **Wrong environment scope.** Vercel env vars are scoped per environment. A `git push` of a branch (or a preview URL like `phodio-xxxxx-...vercel.app`) is a **Preview** deployment — the variable must be enabled for **Preview** as well as **Production** (ticking "All environments" is easiest).
+3. **Use the Session pooler URI.** In Supabase use **Connect -> Session pooler** (hostname like `aws-0-<region>.pooler.supabase.com`, port **5432**). Do not use the direct `db.<ref>.supabase.co` host (IPv6-only, may not connect from Vercel) and do not use the transaction pooler port 6543 (it breaks PDO prepared statements).
+4. **URL-encode special characters in the password.** In the connection string, `@` must be `%40`, `#` must be `%23`, `:` must be `%3A`, `/` must be `%2F`, etc. (The app decodes them correctly, but the URI itself must parse.) Supabase shows the encoded URI in the Connect dialog.
+5. **The Supabase project is paused.** Free-tier projects pause after a period of inactivity — restore it from the Supabase dashboard.
+6. **Schema not loaded.** Run `supabase_schema.sql` in the Supabase SQL Editor (safe to re-run). Without the `phodio_sessions` table, client logins fail at the INSERT even when the connection is fine.
 
 ## Important limitation: profile uploads
 

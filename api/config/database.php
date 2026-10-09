@@ -184,8 +184,12 @@ final class PhodioDbConnection
                     ? ltrim($parts['path'], '/')
                     : 'postgres';
 
-                $user = $parts['user'] ?? 'postgres';
-                $password = $parts['pass'] ?? '';
+                $user = isset($parts['user'])
+                    ? rawurldecode($parts['user'])
+                    : 'postgres';
+                $password = isset($parts['pass'])
+                    ? rawurldecode($parts['pass'])
+                    : '';
 
                 $query = [];
 
@@ -341,8 +345,29 @@ try {
 } catch (Throwable $error) {
     http_response_code(500);
 
+    $hasUrl = trim(
+        (string) (getenv('DATABASE_URL') ?: ($_ENV['DATABASE_URL'] ?? ''))
+    ) !== '';
+
+    if (!$hasUrl) {
+        die(
+            'Database not configured: the DATABASE_URL environment variable is not '
+            . 'available to this deployment. In Vercel, add it under Project Settings '
+            . '-> Environment Variables for BOTH Production and Preview, then '
+            . 'redeploy (Deployments -> Redeploy).'
+        );
+    }
+
+    // The variable exists but the connection failed. PDO connect errors never
+    // contain the password, so showing the reason is safe and makes the
+    // problem diagnosable (wrong host/pooler, unescaped password characters,
+    // paused Supabase project, etc.).
     die(
-        'Database connection failed. Check the Supabase DATABASE_URL environment variable.'
+        'Database connection failed: '
+        . $error->getMessage()
+        . ' -- Check DATABASE_URL (use the Supabase "Session pooler" URI on port '
+        . '5432, URL-encode special characters in the password) and make sure the '
+        . 'Supabase project is not paused.'
     );
 }
 ?>
