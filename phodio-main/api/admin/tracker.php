@@ -1,8 +1,37 @@
-<?php 
-include 'functions.php'; 
+<?php
+/*
+ * checkLogin() is required: without it this page (and process_tracker.php)
+ * was reachable by anyone who knew the URL, exposing the studio's earnings.
+ */
+require_once __DIR__ . '/functions.php';
+
+checkLogin();
 
 // Fetch tracker data - latest first
 $tracker = $conn->query("SELECT *, (target - income_today) as gap FROM daily_tracker ORDER BY track_date DESC");
+
+/*
+ * Feedback from process_tracker.php / delete_tracker.php.
+ */
+$flash = null;
+$flashStatus = (string) ($_GET['status'] ?? '');
+$flashMessage = trim((string) ($_GET['message'] ?? ''));
+
+if ($flashStatus === 'success' || $flashStatus === 'deleted') {
+    $flash = [
+        'class' => 'alert-success',
+        'message' => $flashStatus === 'deleted'
+            ? 'Tracker entry deleted.'
+            : 'Entry saved.',
+    ];
+} elseif ($flashStatus === 'error') {
+    $flash = [
+        'class' => 'alert-danger',
+        'message' => $flashMessage !== ''
+            ? $flashMessage
+            : 'Something went wrong. Please try again.',
+    ];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -21,6 +50,14 @@ $tracker = $conn->query("SELECT *, (target - income_today) as gap FROM daily_tra
 
 <div class="main-content">
     <div class="container-fluid mt-4">
+
+        <?php if ($flash !== null): ?>
+            <div class="alert <?= $flash['class'] ?> alert-dismissible fade show" role="alert">
+                <?= htmlspecialchars($flash['message'], ENT_QUOTES, 'UTF-8') ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+
         <div class="row">
             <div class="col-12">
                 <div class="card shadow">
@@ -54,9 +91,12 @@ $tracker = $conn->query("SELECT *, (target - income_today) as gap FROM daily_tra
                                             <?= ($row['gap'] <= 0) ? 'Goal Met!' : '₱' . number_format($row['gap'], 2) ?>
                                         </td>
                                         <td class="text-center">
-                                            <a href="delete_tracker.php?id=<?= $row['id'] ?>" class="text-muted" onclick="return confirm('Delete this log?')">
-                                                <i class="ri-delete-bin-line"></i>
-                                            </a>
+                                            <form method="POST" action="delete_tracker.php" class="d-inline" onsubmit="return confirm('Delete this log?');">
+                                                <input type="hidden" name="id" value="<?= (int) $row['id'] ?>">
+                                                <button type="submit" class="btn btn-link text-muted p-0 border-0 align-baseline" title="Delete entry" aria-label="Delete entry">
+                                                    <i class="ri-delete-bin-line"></i>
+                                                </button>
+                                            </form>
                                         </td>
                                     </tr>
                                     <?php endwhile; ?>

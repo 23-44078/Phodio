@@ -1,7 +1,37 @@
-<?php 
-include 'functions.php'; 
+<?php
+/*
+ * checkLogin() is required: without it this page (and process_liability.php)
+ * was reachable by anyone who knew the URL, exposing the studio's debts.
+ */
+require_once __DIR__ . '/functions.php';
+
+checkLogin();
+
 // Fetching liabilities - grouped by date
 $liabilities = $conn->query("SELECT * FROM liabilities ORDER BY due_date ASC");
+
+/*
+ * Feedback from process_liability.php / delete_liability.php.
+ */
+$flash = null;
+$flashStatus = (string) ($_GET['status'] ?? '');
+$flashMessage = trim((string) ($_GET['message'] ?? ''));
+
+if ($flashStatus === 'success' || $flashStatus === 'deleted') {
+    $flash = [
+        'class' => 'alert-success',
+        'message' => $flashStatus === 'deleted'
+            ? 'Liability removed.'
+            : 'Liability saved.',
+    ];
+} elseif ($flashStatus === 'error') {
+    $flash = [
+        'class' => 'alert-danger',
+        'message' => $flashMessage !== ''
+            ? $flashMessage
+            : 'Something went wrong. Please try again.',
+    ];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -20,6 +50,14 @@ $liabilities = $conn->query("SELECT * FROM liabilities ORDER BY due_date ASC");
 
 <div class="main-content">
     <div class="container-fluid mt-4">
+
+        <?php if ($flash !== null): ?>
+            <div class="alert <?= $flash['class'] ?> alert-dismissible fade show" role="alert">
+                <?= htmlspecialchars($flash['message'], ENT_QUOTES, 'UTF-8') ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
+
         <div class="row">
             <div class="col-12">
                 <div class="card shadow">
@@ -50,9 +88,12 @@ $liabilities = $conn->query("SELECT * FROM liabilities ORDER BY due_date ASC");
                                             <td><?= $row['description'] ?></td>
                                             <td class="text-warning fw-bold">₱<?= number_format($row['amount'], 2) ?></td>
                                             <td class="text-center">
-                                                <a href="delete_liability.php?id=<?= $row['id'] ?>" class="text-muted" onclick="return confirm('Mark as settled or delete?')">
-                                                    <i class="ri-delete-bin-line"></i>
-                                                </a>
+                                                <form method="POST" action="delete_liability.php" class="d-inline" onsubmit="return confirm('Mark as settled or delete?');">
+                                                    <input type="hidden" name="id" value="<?= (int) $row['id'] ?>">
+                                                    <button type="submit" class="btn btn-link text-muted p-0 border-0 align-baseline" title="Delete liability" aria-label="Delete liability">
+                                                        <i class="ri-delete-bin-line"></i>
+                                                    </button>
+                                                </form>
                                             </td>
                                         </tr>
                                         <?php endwhile; ?>

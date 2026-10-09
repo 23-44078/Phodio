@@ -1,11 +1,20 @@
 <?php
 
+/*
+ * config/database.php has to load first: it points session.save_path at
+ * /tmp/phodio-sessions (Vercel's only writable directory).
+ *
+ * Starting the session before that happened made studio pages read sessions
+ * from PHP's default directory while /login.php wrote them to
+ * /tmp/phodio-sessions, so a successful sign-in looked signed out on the very
+ * next request. That only worked while api/php.ini happened to be loaded.
+ */
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/auth.php';
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../includes/auth.php';
 
 /**
  * Guard for every studio page.
