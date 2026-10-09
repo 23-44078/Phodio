@@ -119,6 +119,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Client login sessions (database-backed auth used by the PHP app).
+CREATE TABLE IF NOT EXISTS phodio_sessions (
+    session_id VARCHAR(64) PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    client_username VARCHAR(150) NOT NULL,
+    client_name VARCHAR(200),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_phodio_sessions_client_id ON phodio_sessions (client_id);
+CREATE INDEX IF NOT EXISTS idx_phodio_sessions_expires_at ON phodio_sessions (expires_at);
+
 DROP TRIGGER IF EXISTS bookings_set_updated_at ON bookings;
 CREATE TRIGGER bookings_set_updated_at
 BEFORE UPDATE ON bookings
@@ -134,3 +147,4 @@ ALTER TABLE booking_updates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE daily_tracker ENABLE ROW LEVEL SECURITY;
 ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE liabilities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE phodio_sessions ENABLE ROW LEVEL SECURITY;

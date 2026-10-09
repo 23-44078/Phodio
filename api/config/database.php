@@ -96,14 +96,18 @@ final class PhodioDbStatement
             foreach ($this->bound as $position => &$value) {
                 $type = $this->types[$position - 1] ?? 's';
 
+                // PDO::execute() needs a zero-indexed list for positional
+                // placeholders; using $params[$position] (1-based) makes PDO
+                // interpret the keys as named parameters and fail with
+                // SQLSTATE[HY093].
                 if ($value === null) {
-                    $params[$position] = null;
+                    $params[] = null;
                 } elseif ($type === 'i') {
-                    $params[$position] = (int) $value;
+                    $params[] = (int) $value;
                 } elseif ($type === 'd') {
-                    $params[$position] = (float) $value;
+                    $params[] = (float) $value;
                 } else {
-                    $params[$position] = (string) $value;
+                    $params[] = (string) $value;
                 }
             }
 
@@ -180,8 +184,12 @@ final class PhodioDbConnection
                     ? ltrim($parts['path'], '/')
                     : 'postgres';
 
-                $user = $parts['user'] ?? 'postgres';
-                $password = $parts['pass'] ?? '';
+                $user = isset($parts['user'])
+                    ? rawurldecode($parts['user'])
+                    : 'postgres';
+                $password = isset($parts['pass'])
+                    ? rawurldecode($parts['pass'])
+                    : '';
 
                 $query = [];
 
@@ -337,8 +345,29 @@ try {
 } catch (Throwable $error) {
     http_response_code(500);
 
+    $hasUrl = trim(
+        (string) (getenv('DATABASE_URL') ?: ($_ENV['DATABASE_URL'] ?? ''))
+    ) !== '';
+
+    if (!$hasUrl) {
+        die(
+            'Database not configured: the DATABASE_URL environment variable is not '
+            . 'available to this deployment. In Vercel, add it under Project Settings '
+            . '-> Environment Variables for BOTH Production and Preview, then '
+            . 'redeploy (Deployments -> Redeploy).'
+        );
+    }
+
+    // The variable exists but the connection failed. PDO connect errors never
+    // contain the password, so showing the reason is safe and makes the
+    // problem diagnosable (wrong host/pooler, unescaped password characters,
+    // paused Supabase project, etc.).
     die(
-        'Database connection failed. Check the Supabase DATABASE_URL environment variable.'
+        'Database connection failed: '
+        . $error->getMessage()
+        . ' -- Check DATABASE_URL (use the Supabase "Session pooler" URI on port '
+        . '5432, URL-encode special characters in the password) and make sure the '
+        . 'Supabase project is not paused.'
     );
 }
 ?>
