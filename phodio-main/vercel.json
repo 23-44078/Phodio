@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/router.php": {
+      "runtime": "vercel-php@0.9.0"
+    }
+  },
+  "routes": [
+    { "src": "/", "dest": "/api/router.php" },
+    { "src": "/admin", "status": 308, "headers": { "Location": "/admin/" } },
+    { "src": "/admin/", "dest": "/api/router.php" },
+    { "src": "/admin/assets/(.*)", "dest": "/api/admin/assets/$1" },
+    { "src": "/api/(.*\\.php)", "dest": "/api/router.php" },
+    { "src": "/(.*\\.php)", "dest": "/api/router.php" }
+  ]
+}
