@@ -96,14 +96,18 @@ final class PhodioDbStatement
             foreach ($this->bound as $position => &$value) {
                 $type = $this->types[$position - 1] ?? 's';
 
+                // PDO::execute() needs a zero-indexed list for positional
+                // placeholders; using $params[$position] (1-based) makes PDO
+                // interpret the keys as named parameters and fail with
+                // SQLSTATE[HY093].
                 if ($value === null) {
-                    $params[$position] = null;
+                    $params[] = null;
                 } elseif ($type === 'i') {
-                    $params[$position] = (int) $value;
+                    $params[] = (int) $value;
                 } elseif ($type === 'd') {
-                    $params[$position] = (float) $value;
+                    $params[] = (float) $value;
                 } else {
-                    $params[$position] = (string) $value;
+                    $params[] = (string) $value;
                 }
             }
 

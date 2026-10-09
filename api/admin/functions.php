@@ -12,7 +12,7 @@ function checkLogin(): void
     }
 }
 
-function getDashboardData( string $range = 'month'): array
+function getDashboardData($conn, string $range = 'month'): array
 {
     $startDate = $range === 'today' ? date('Y-m-d') : date('Y-m-d', strtotime('-1 month'));
 
