@@ -1,8 +1,16 @@
 <?php
 
+/*
+ * Errors are logged, never printed.
+ *
+ * This page runs in production on Vercel, so a stack trace here would show
+ * visitors the database host, the failing query and absolute file paths.
+ * Anything that does go wrong is still recorded in the function log.
+ */
 error_reporting(E_ALL);
-ini_set('display_errors', '1');
-ini_set('display_startup_errors', '1');
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+ini_set('log_errors', '1');
 
 date_default_timezone_set('Asia/Manila');
 

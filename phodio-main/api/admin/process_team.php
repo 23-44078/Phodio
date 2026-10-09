@@ -3,15 +3,15 @@
 /**
  * Actions behind admin/team.php.
  *
- * Every action requires a super admin, and the guards below make sure the
- * studio can never lock itself out: you cannot edit your own role or status,
- * and the last remaining super admin can neither be demoted, disabled, nor
- * removed.
+ * There is no super admin any more: every signed-in studio account can create,
+ * disable and remove accounts. The only guard left is the one that keeps the
+ * studio from locking itself out — you cannot disable or remove the account
+ * you are currently signed in as.
  */
 
 require_once __DIR__ . '/functions.php';
 
-checkSuperAdmin();
+checkLogin();
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
     header('Location: team.php');
@@ -32,6 +32,12 @@ function team_fail(string $message): void
     exit;
 }
 
+/**
+ * Load one studio account.
+ *
+ * is_active / full_name only exist once 20261009_01_admin_roles.sql has been
+ * applied, so an unmigrated database falls back to "always active".
+ */
 function team_account(PDO $pdo, int $id): ?array
 {
     if (phodio_admin_roles_supported($pdo)) {
@@ -39,7 +45,6 @@ function team_account(PDO $pdo, int $id): ?array
             'SELECT
                 id,
                 username,
-                role,
                 (COALESCE(is_active, TRUE))::int AS is_active
              FROM admin
              WHERE id = :id
@@ -47,14 +52,13 @@ function team_account(PDO $pdo, int $id): ?array
         );
     } else {
         $stmt = $pdo->prepare(
-            "SELECT
+            'SELECT
                 id,
                 username,
-                'super_admin' AS role,
                 1 AS is_active
              FROM admin
              WHERE id = :id
-             LIMIT 1"
+             LIMIT 1'
         );
     }
 
@@ -65,30 +69,8 @@ function team_account(PDO $pdo, int $id): ?array
     return $account === false ? null : $account;
 }
 
-function team_super_admin_count(PDO $pdo): int
+function team_validate_password(string $password): void
 {
-    if (!phodio_admin_roles_supported($pdo)) {
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM admin');
-        $stmt->execute();
-
-        return (int) $stmt->fetchColumn();
-    }
-
-    $stmt = $pdo->prepare(
-        "SELECT COUNT(*) FROM admin WHERE role = 'super_admin'"
-    );
-
-    $stmt->execute();
-
-    return (int) $stmt->fetchColumn();
-}
-
-function team_validate_password(string $password, bool $required = true): void
-{
-    if (!$required && $password === '') {
-        return;
-    }
-
     if (strlen($password) < 8 || strlen($password) > 72) {
         team_fail('Passwords must be between 8 and 72 characters.');
     }
@@ -105,7 +87,7 @@ $id = ($parsedId === false || $parsedId === null || $parsedId < 1)
 $currentAdmin = phodio_current_admin();
 $currentId = (int) ($currentAdmin['id'] ?? 0);
 
-$rolesSupported = phodio_admin_roles_supported($pdo);
+$accountsSupported = phodio_admin_roles_supported($pdo);
 
 switch ($action) {
     /*
@@ -114,22 +96,22 @@ switch ($action) {
      |----------------------------------------------------------------------
      */
     case 'create':
-        if (!$rolesSupported) {
-            team_fail('Run api/db/migrations/20261009_01_admin_roles.sql in Supabase before managing roles.');
+        if (!$accountsSupported) {
+            team_fail(
+                'Run api/db/migrations/20261009_01_admin_roles.sql in Supabase '
+                . 'before managing accounts.'
+            );
         }
 
         $username = trim((string) ($_POST['username'] ?? ''));
         $fullName = trim((string) ($_POST['full_name'] ?? ''));
         $password = (string) ($_POST['password'] ?? '');
 
-        $role = strtolower(trim((string) ($_POST['role'] ?? PHODIO_ROLE_ADMIN)));
-
-        if ($role !== PHODIO_ROLE_SUPER_ADMIN) {
-            $role = PHODIO_ROLE_ADMIN;
-        }
-
         if (!preg_match('/^[A-Za-z0-9._-]{3,50}$/', $username)) {
-            team_fail('Usernames must be 3-50 characters using letters, numbers, dots, underscores or hyphens.');
+            team_fail(
+                'Usernames must be 3-50 characters using letters, numbers, '
+                . 'dots, underscores or hyphens.'
+            );
         }
 
         if (mb_strlen($fullName) > 120) {
@@ -148,17 +130,20 @@ switch ($action) {
             team_fail('That username is already taken.');
         }
 
+        /*
+         * role is left to the column default ('admin'): there is no super
+         * admin any more, so every account is created equal.
+         */
         $insert = $pdo->prepare(
             'INSERT INTO admin
-                (username, password, role, full_name, is_active)
+                (username, password, full_name, is_active)
              VALUES
-                (:username, :password, :role, :full_name, TRUE)'
+                (:username, :password, :full_name, TRUE)'
         );
 
         $insert->execute([
             'username' => $username,
             'password' => password_hash($password, PASSWORD_DEFAULT),
-            'role' => $role,
             'full_name' => $fullName !== '' ? $fullName : null,
         ]);
 
@@ -166,62 +151,15 @@ switch ($action) {
 
     /*
      |----------------------------------------------------------------------
-     | CHANGE ROLE
-     |----------------------------------------------------------------------
-     */
-    case 'role':
-        if (!$rolesSupported) {
-            team_fail('Run api/db/migrations/20261009_01_admin_roles.sql in Supabase before managing roles.');
-        }
-
-        if ($id === null) {
-            team_fail('Pick a valid studio account.');
-        }
-
-        if ($id === $currentId) {
-            team_fail('You cannot change your own role.');
-        }
-
-        $account = team_account($pdo, $id);
-
-        if ($account === null) {
-            team_fail('That studio account no longer exists.');
-        }
-
-        $role = strtolower(trim((string) ($_POST['role'] ?? PHODIO_ROLE_ADMIN)));
-
-        if ($role !== PHODIO_ROLE_SUPER_ADMIN) {
-            $role = PHODIO_ROLE_ADMIN;
-        }
-
-        $wasSuper = strtolower((string) $account['role']) === PHODIO_ROLE_SUPER_ADMIN;
-
-        if ($wasSuper
-            && $role !== PHODIO_ROLE_SUPER_ADMIN
-            && team_super_admin_count($pdo) <= 1
-        ) {
-            team_fail('At least one super admin must remain.');
-        }
-
-        $update = $pdo->prepare(
-            'UPDATE admin SET role = :role WHERE id = :id'
-        );
-
-        $update->execute([
-            'role' => $role,
-            'id' => $id,
-        ]);
-
-        team_ok('role');
-
-    /*
-     |----------------------------------------------------------------------
      | ENABLE / DISABLE
      |----------------------------------------------------------------------
      */
     case 'toggle':
-        if (!$rolesSupported) {
-            team_fail('Run api/db/migrations/20261009_01_admin_roles.sql in Supabase before managing roles.');
+        if (!$accountsSupported) {
+            team_fail(
+                'Run api/db/migrations/20261009_01_admin_roles.sql in Supabase '
+                . 'before managing accounts.'
+            );
         }
 
         if ($id === null) {
@@ -229,7 +167,7 @@ switch ($action) {
         }
 
         if ($id === $currentId) {
-            team_fail('You cannot disable your own account.');
+            team_fail('You cannot disable the account you are signed in as.');
         }
 
         $account = team_account($pdo, $id);
@@ -239,13 +177,6 @@ switch ($action) {
         }
 
         $isActive = (int) $account['is_active'] === 1;
-
-        if ($isActive
-            && strtolower((string) $account['role']) === PHODIO_ROLE_SUPER_ADMIN
-            && team_super_admin_count($pdo) <= 1
-        ) {
-            team_fail('At least one active super admin must remain.');
-        }
 
         // Explicit TRUE/FALSE keeps the parameter unambiguous for PostgreSQL.
         $update = $pdo->prepare(
@@ -300,19 +231,13 @@ switch ($action) {
         }
 
         if ($id === $currentId) {
-            team_fail('You cannot remove your own account.');
+            team_fail('You cannot remove the account you are signed in as.');
         }
 
         $account = team_account($pdo, $id);
 
         if ($account === null) {
             team_fail('That studio account no longer exists.');
-        }
-
-        if (strtolower((string) $account['role']) === PHODIO_ROLE_SUPER_ADMIN
-            && team_super_admin_count($pdo) <= 1
-        ) {
-            team_fail('At least one super admin must remain.');
         }
 
         $delete = $pdo->prepare('DELETE FROM admin WHERE id = :id');

@@ -4,15 +4,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$isSuperAdmin = function_exists('phodio_is_super_admin')
-    ? phodio_is_super_admin()
-    : false;
-
 $signedInName = trim(
     (string) ($_SESSION['admin_name'] ?? $_SESSION['admin'] ?? 'Studio')
 );
-
-$signedInRoleLabel = $isSuperAdmin ? 'Super admin' : 'Admin';
 ?>
 
 <header class="main-header d-lg-none">
@@ -50,6 +44,9 @@ $signedInRoleLabel = $isSuperAdmin ? 'Super admin' : 'Admin';
         <a href="tracker.php" class="nav-link-custom <?= (basename($_SERVER['PHP_SELF']) == 'tracker.php') ? 'active' : '' ?>">
             <i class="ri-line-chart-line"></i> Daily Tracker
         </a>
+        <a href="team.php" class="nav-link-custom <?= (basename($_SERVER['PHP_SELF']) == 'team.php') ? 'active' : '' ?>">
+            <i class="ri-team-line"></i> Studio Accounts
+        </a>
         
     <!--    <div class="mt-auto">
             <a href="settings.php" class="nav-link-custom">
@@ -61,9 +58,9 @@ $signedInRoleLabel = $isSuperAdmin ? 'Super admin' : 'Admin';
                 <div class="fw-bold text-white text-truncate">
                     <?= htmlspecialchars($signedInName, ENT_QUOTES, 'UTF-8') ?>
                 </div>
-                <span class="badge <?= $isSuperAdmin ? 'bg-danger' : 'bg-primary' ?>">
-                    <?= htmlspecialchars($signedInRoleLabel, ENT_QUOTES, 'UTF-8') ?>
-                </span>
+                <div class="small text-muted">
+                    Studio account
+                </div>
             </div>
 
             <a href="#" data-bs-toggle="modal" data-bs-target="#logoutModal" class="nav-link-custom text-danger fw-bold">
