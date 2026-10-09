@@ -14,14 +14,14 @@ phodio-main/api/db/migrations/20261009_02_chat_messages.sql
 phodio-main/api/db/migrations/20261009_03_drop_booking_title.sql
 ```
 
-All three are idempotent (safe to re-run). Back up the database first if you
-want to be careful — `20261009_03` drops the `bookings.title` column.
+All three are idempotent (safe to re-run). Back up the database first —
+`20261009_03` drops the `bookings.title` column.
 
 | Migrated | What happens if you skip it |
 | --- | --- |
 | `01` roles | The app still works; every studio account behaves as a super admin and the **Studio accounts** page shows a "run the migration" notice. |
 | `02` chat | The chat panels show a setup notice. Booking, calendar and progress updates are unaffected. |
-| `03` drop title | Nothing breaks, but the old `title` column stays in the database and is no longer written to. |
+| `03` drop title | **Required for bookings.** In the old schema `bookings.title` is `NOT NULL`, and the current code no longer writes it, so new bookings fail until this migration runs. After it runs, any deployment still on pre-PR #4 code can no longer save bookings. |
 
 A brand-new database only needs `supabase_schema.sql` — it already contains
 migrations 01 and 02.
@@ -56,19 +56,30 @@ openssl rand -hex 32
   booking. The free-text `title` field is gone from every form, list and
   calendar event.
 
-## Security follow-up (not changed, your call)
+## Security fix: public debug endpoints removed
 
-Two pre-existing debug endpoints are publicly reachable and were left as-is:
+`/admin/repair.php` and `/admin/test_password.php` were publicly reachable and
+have been deleted:
 
-- `/admin/repair.php` — **truncates** the `admin` table and recreates a single
-  account with the password `SoulprintMP` printed in the page. This is a full
-  account takeover for anyone who knows the URL.
-- `/admin/test_password.php` — reports whether a given username/password pair is
-  valid, i.e. a login oracle.
+- `repair.php` truncated the `admin` table and recreated a `soulprint` super
+  admin with a hard-coded password that was printed on the page. Anyone who knew
+  the URL could take over the studio.
+- `test_password.php` checked the `admin` account and printed its stored password
+  hash when the check failed.
 
-Recommendation: delete both files, or move them behind a secret and delete them
-after use. This release only makes `repair.php` recreate the account as a
-**super admin** so it can still reach `/admin/team.php`.
+Because that password was committed to this repository, **change the `soulprint`
+password** and check the `admin` table for accounts you do not recognise.
+
+To reset a password without the removed page, generate a hash on your own machine
+and update the row in the Supabase SQL Editor:
+
+```bash
+php -r "echo password_hash('NEW_PASSWORD', PASSWORD_DEFAULT), PHP_EOL;"
+```
+
+```sql
+UPDATE admin SET password = '<hash from the command above>' WHERE username = 'soulprint';
+```
 
 ## Deployment target
 
