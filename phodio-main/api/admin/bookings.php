@@ -67,6 +67,20 @@ function admin_bookings_h(string $value): string
                         <div class="text-center py-5"><i class="ri-cursor-line ri-2x text-muted d-block mb-3"></i><p class="text-muted">Select a booking on the calendar to review details and update progress.</p></div>
                     </div>
                 </div>
+
+                <div class="card shadow border-0 mt-4" id="chatCard" hidden>
+                    <div class="card-header d-flex justify-content-between align-items-center gap-2 text-white">
+                        <span><i class="ri-message-3-line me-2 text-info"></i>Client messages</span>
+                        <span class="small text-muted text-truncate" id="chatBookingLabel"></span>
+                    </div>
+                    <div class="card-body">
+                        <div id="adminChatMount"></div>
+                        <p class="small text-muted mb-0 mt-3">
+                            <i class="ri-time-line me-1"></i>
+                            Replies show up on the client's booking page straight away.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -80,7 +94,6 @@ function admin_bookings_h(string $value): string
                 <input type="hidden" name="booking_id" id="bookingIdInput">
                 <div class="row g-3">
                     <div class="col-md-6"><label class="form-label" for="clientSelect">Client account <span class="text-muted">(optional for walk-ins)</span></label><select class="form-select" name="client_id" id="clientSelect"><option value="">Walk-in / not linked</option><?php while ($client = $clients->fetch_assoc()): ?><option value="<?= (int) $client['id'] ?>"><?= admin_bookings_h(trim($client['firstname'] . ' ' . $client['lastname']) . ' · ' . $client['username']) ?></option><?php endwhile; ?></select></div>
-                    <div class="col-md-6"><label class="form-label" for="sessionTitle">Session title / occasion</label><input class="form-control" type="text" name="title" id="sessionTitle" maxlength="255" required placeholder="e.g. Graduation portraits"></div>
                     <div class="col-md-6"><label class="form-label" for="serviceType">Session type</label><select class="form-select" name="service_type" id="serviceType" required><?php foreach ($serviceTypes as $key => $label): ?><option value="<?= admin_bookings_h($key) ?>"><?= admin_bookings_h($label) ?></option><?php endforeach; ?></select></div>
                     <div class="col-md-6"><label class="form-label" for="attendeeCount">Number of people</label><select class="form-select" name="attendee_count" id="attendeeCount" required><option value="1">1 person</option><option value="2">2 people</option><option value="3">3 people</option><option value="4">4 people</option></select></div>
                     <div class="col-md-6"><label class="form-label" for="packageSelect">Package</label><select class="form-select" name="package_key" id="packageSelect" required><?php foreach ($groupedPackages as $category => $items): ?><optgroup label="<?= admin_bookings_h($category) ?>"><?php foreach ($items as $package): ?><option value="<?= admin_bookings_h($package['key']) ?>" data-price="<?= (int) $package['price'] ?>" data-min="<?= (int) $package['min_people'] ?>" data-max="<?= (int) $package['max_people'] ?>"><?= admin_bookings_h($package['name']) ?> — ₱<?= number_format($package['price']) ?> · <?= admin_bookings_h($package['duration']) ?></option><?php endforeach; ?></optgroup><?php endforeach; ?></select></div>
@@ -101,6 +114,7 @@ function admin_bookings_h(string $value): string
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<script src="../chat_widget.js.php"></script>
 <script>
 const bookingForm=document.getElementById('bookingForm');
 const bookingModal=new bootstrap.Modal(document.getElementById('bookingModal'));
@@ -139,7 +153,7 @@ function renderBooking(booking){
     const statusClass=classes[booking.status]||'status-pending';
     const time=booking.period==='AM'?'9:00 AM · Morning':'1:00 PM · Afternoon';
     inspector.innerHTML=`
-        <div class="d-flex justify-content-between align-items-start gap-2 mb-3"><div><h3 class="h6 fw-bold mb-1">${escapeHtml(booking.title||booking.package_type)}</h3><div class="small text-muted">${escapeHtml(booking.client_name||'Walk-in / not linked')}</div></div><span class="status-chip ${statusClass}">${escapeHtml(booking.status)}</span></div>
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-3"><div><h3 class="h6 fw-bold mb-1">${escapeHtml(booking.package_type||'Photography session')}</h3><div class="small text-muted">${escapeHtml(booking.client_name||'Walk-in / not linked')}</div></div><span class="status-chip ${statusClass}">${escapeHtml(booking.status)}</span></div>
         <table class="table table-borderless table-sm text-white detail-table mb-3">
             <tr><td>Session type</td><td>${escapeHtml(booking.service_type||'—')}</td></tr><tr><td>Package</td><td>${escapeHtml(booking.package_type||'—')}</td></tr>
             <tr><td>Price</td><td class="text-success fw-bold">₱${Number(booking.price||0).toLocaleString()}</td></tr><tr><td>Theme</td><td>${escapeHtml(booking.motif||'—')}</td></tr>
@@ -164,6 +178,32 @@ function renderBooking(booking){
     document.getElementById('editSelectedBooking').addEventListener('click',()=>openEditModal(booking));
     document.getElementById('statusForm').addEventListener('submit',saveProgressUpdate);
 }
+let adminChat=null;
+
+function mountAdminChat(booking){
+    const card=document.getElementById('chatCard');
+    const label=document.getElementById('chatBookingLabel');
+
+    if(!card)return;
+
+    card.hidden=false;
+    label.textContent='#'+Number(booking.id)+' · '+((booking.client_name||'Walk-in').trim());
+
+    if(adminChat&&adminChat.destroy){adminChat.destroy();}
+
+    if(!window.PhodioChat)return;
+
+    adminChat=window.PhodioChat.mount({
+        container:document.getElementById('adminChatMount'),
+        bookingId:Number(booking.id),
+        endpoint:'../chat.php',
+        title:'Client messages',
+        placeholder:'Reply to the client…',
+        emptyText:'No messages on this booking yet.',
+        pollMs:15000
+    });
+}
+
 async function fetchDetails(id,silent=false){
     try{
         const response=await fetch('get_booking_details.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({id:String(id)})});
@@ -171,6 +211,7 @@ async function fetchDetails(id,silent=false){
         if(!response.ok||!data.ok)throw new Error(data.message||'Could not load this booking.');
         selectedBookingId=Number(data.booking.id);
         renderBooking(data.booking);
+        mountAdminChat(data.booking);
     }catch(error){if(!silent)notify(error.message);}
 }
 function openEditModal(booking){
@@ -178,7 +219,6 @@ function openEditModal(booking){
     document.getElementById('modalTitle').textContent='Edit appointment details';
     document.getElementById('bookingIdInput').value=booking.id;
     document.getElementById('clientSelect').value=booking.client_id||'';
-    document.getElementById('sessionTitle').value=booking.title||'';
     document.getElementById('serviceType').value=booking.service_type||'portrait';
     attendeeSelect.value=String(booking.attendee_count||1);
     if(booking.package_key&&packageSelect.querySelector(`option[value="${CSS.escape(booking.package_key)}"]`))packageSelect.value=booking.package_key;

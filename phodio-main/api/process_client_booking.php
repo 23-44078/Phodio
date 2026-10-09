@@ -313,12 +313,6 @@ $serviceType = trim(
     )
 );
 
-$title = trim(
-    (string) (
-        $_POST['title'] ?? ''
-    )
-);
-
 $motif = trim(
     (string) (
         $_POST['motif'] ?? ''
@@ -402,8 +396,6 @@ if (
 */
 
 if (
-    $title === '' ||
-    strlen($title) > 255 ||
     $motif === '' ||
     strlen($motif) > 100 ||
     strlen($clientNotes) > 1000
@@ -412,7 +404,7 @@ if (
     phodio_json_response([
         'ok' => false,
         'message' =>
-            'Enter a session title and theme. Keep the title under 255 characters, theme under 100 characters, and notes under 1,000 characters.'
+            'Enter a theme and keep it under 100 characters, and keep notes under 1,000 characters.'
     ], 422);
 }
 
@@ -645,7 +637,6 @@ try {
             $pdo->prepare("
                 UPDATE bookings
                 SET
-                    title = :title,
                     service_type = :service_type,
                     package_key = :package_key,
                     package_type = :package_type,
@@ -665,7 +656,6 @@ try {
             ");
 
         $update->execute([
-            'title' => $title,
             'service_type' => $serviceType,
             'package_key' => $packageKey,
             'package_type' => $packageName,
@@ -742,7 +732,6 @@ try {
             $pdo->prepare("
                 INSERT INTO bookings (
                     client_id,
-                    title,
                     service_type,
                     package_key,
                     package_type,
@@ -760,7 +749,6 @@ try {
                 )
                 VALUES (
                     :client_id,
-                    :title,
                     :service_type,
                     :package_key,
                     :package_type,
@@ -781,7 +769,6 @@ try {
 
         $insert->execute([
             'client_id' => $clientId,
-            'title' => $title,
             'service_type' => $serviceType,
             'package_key' => $packageKey,
             'package_type' => $packageName,

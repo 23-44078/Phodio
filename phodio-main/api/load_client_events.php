@@ -49,7 +49,6 @@ $stmt = $pdo->prepare("
     SELECT
         id,
         client_id,
-        title,
         package_type,
         booking_date,
         start_time,
@@ -79,11 +78,7 @@ foreach ($events as $row) {
     $start = $row['booking_date'] . 'T' . $row['start_time'];
 
     if ($isOwn) {
-        $title = trim((string) $row['title']);
-
-        if ($title === '') {
-            $title = $row['package_type'] ?: 'My session';
-        }
+        $title = trim((string) $row['package_type']) ?: 'My session';
 
         $formattedEvents[] = [
             'id' => (string) $row['id'],

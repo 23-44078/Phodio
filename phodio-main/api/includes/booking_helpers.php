@@ -309,3 +309,77 @@ function phodio_booking_status_color(
     return $colors[$status]
         ?? '#3b82f6';
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| ESCAPING
+|--------------------------------------------------------------------------
+|
+| Declared conditionally: some pages (client_dashboard.php) already define
+| their own phodio_escape() and an unconditional redeclare would be fatal.
+|
+*/
+
+if (!function_exists('phodio_escape')) {
+    function phodio_escape($value): string
+    {
+        return htmlspecialchars(
+            (string) $value,
+            ENT_QUOTES,
+            'UTF-8'
+        );
+    }
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| BOOKING LABEL
+|--------------------------------------------------------------------------
+|
+| The free-text bookings.title column was removed in
+| 20261009_03_drop_booking_title.sql. The package name is now the single
+| source of truth for what a booking is called in the calendar, the client
+| portal and the admin inspector.
+|
+*/
+
+function phodio_booking_label(array $booking): string
+{
+    $label = trim(
+        (string) (
+            $booking['package_type']
+            ?? ''
+        )
+    );
+
+    if ($label !== '') {
+        return $label;
+    }
+
+    $service = trim(
+        (string) (
+            $booking['service_type']
+            ?? ''
+        )
+    );
+
+    if ($service !== '') {
+        $serviceTypes = phodio_service_types();
+
+        if (isset($serviceTypes[$service])) {
+            return (string) $serviceTypes[$service];
+        }
+
+        return ucfirst(
+            str_replace(
+                '_',
+                ' ',
+                $service
+            )
+        );
+    }
+
+    return 'Photography session';
+}
