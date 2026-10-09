@@ -19,15 +19,58 @@ In Vercel: Project -> Settings -> Environment Variables, add:
 
 Do not put the real password in this repo or commit it to Git.
 
-## 4. Deploy
+### Optional: `PHODIO_CHAT_KEY`
+
+`PHODIO_CHAT_KEY` is **optional**. It unlocks one extra feature: it lets the
+booking chat survive a Vercel cold start that drops the PHP session file.
+
+- When it **is set**, `api/chat.php` also accepts a per-booking HMAC token
+  (`X-Phodio-Chat-Token`). The token is issued by the server, is bound to one
+  booking and one sender, and cannot be forged by the browser.
+- When it is **not set**, chat simply uses the PHP session and the
+  `phodio_session` cookie. Everything still works; a client may occasionally
+  need to refresh the page to see new messages after a cold start.
+
+To enable it, generate a long random string and add it to Vercel for **all**
+environments:
+
+```bash
+openssl rand -hex 32
+```
+
+Changing the value invalidates any token already in a browser, which is
+harmless: the next page load is issued a fresh one.
+
+## 4. Database migrations
+
+`supabase_schema.sql` is enough for a brand-new database. An existing database
+needs the dated files in `api/db/migrations/` run **in order** in the Supabase
+SQL Editor. They are idempotent, so re-running them is safe.
+
+| File | What it does |
+| --- | --- |
+| `20261002_manuscript_alignment.sql` | Legacy MySQL alignment (old databases only) |
+| `20261009_01_admin_roles.sql` | Adds `admin.role` (`admin` / `super_admin`), `full_name`, `is_active`, `last_login_at` |
+| `20261009_02_chat_messages.sql` | Creates the `chat_messages` table used by the booking chat |
+| `20261009_03_drop_booking_title.sql` | Drops the `bookings.title` column; `package_type` becomes the only label |
+
+Until `20261009_01` is applied the app degrades gracefully: every studio
+account behaves as a super admin. Until `20261009_02` is applied the chat
+panels show a setup notice instead of an error.
+
+## 5. Deploy
 
 Import the repository into Vercel. Keep the **Root Directory at the repository root (`./`)** — the app (`api/` + `vercel.json`) lives at the root, and the included `vercel.json` configures the community PHP runtime and routes every PHP URL through the single front controller `api/router.php`.
 
 After deploying:
 
-- Public client site: `https://<project>.vercel.app/` (redirects to the login page)
+- Unified sign-in: `https://<project>.vercel.app/login.php` (client and studio accounts use the same form)
+- Public client site: `https://<project>.vercel.app/` (redirects to the sign-in page)
 - Admin panel: `https://<project>.vercel.app/admin/`
 - Health check: `https://<project>.vercel.app/health.php` (returns `"ok": true` when the database connection works)
+
+`/client_login.php` and `/admin/login.php` are kept as redirects to
+`/login.php`, so existing links and bookmarks keep working.
 
 ## Troubleshooting: "Database connection failed"
 

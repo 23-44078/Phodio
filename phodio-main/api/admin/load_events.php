@@ -3,11 +3,11 @@ require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/../includes/booking_helpers.php';
 checkLogin();
 
-$result = $conn->query("SELECT id, title, package_type, booking_date, start_time, status
+$result = $conn->query("SELECT id, package_type, booking_date, start_time, status
                         FROM bookings ORDER BY booking_date, start_time");
 $events = [];
 while ($row = $result->fetch_assoc()) {
-    $title = trim((string) $row['title']) ?: (string) $row['package_type'];
+    $title = trim((string) $row['package_type']) ?: 'Photography session';
     $events[] = [
         'id' => (string) $row['id'],
         'title' => $title . ' · ' . $row['status'],

@@ -988,6 +988,45 @@ function phodio_h(string $value): string
             </div>
 
 
+            <div class="surface mt-3" id="chatSurface" hidden>
+
+                <div
+                    class="surface-header d-flex justify-content-between align-items-center gap-2"
+                >
+
+                    <span>
+
+                        <i class="ri-message-3-line text-info me-2"></i>
+
+                        Message the studio
+
+                    </span>
+
+                    <span
+                        class="small text-secondary-custom text-truncate"
+                        id="chatSubtitle"
+                    ></span>
+
+                </div>
+
+
+                <div class="surface-body">
+
+                    <div id="clientChatMount"></div>
+
+                    <p class="small text-secondary-custom mt-3 mb-0">
+
+                        <i class="ri-time-line me-1"></i>
+
+                        The studio replies here about this booking.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+
             <div class="small text-secondary-custom mt-2">
 
                 <i class="ri-time-line me-1"></i>
@@ -1065,28 +1104,6 @@ function phodio_h(string $value): string
 
 
                 <div class="row g-3">
-
-                    <div class="col-md-6">
-
-                        <label
-                            class="form-label"
-                            for="sessionTitle"
-                        >
-                            Session title / occasion
-                        </label>
-
-                        <input
-                            class="form-control"
-                            type="text"
-                            name="title"
-                            id="sessionTitle"
-                            maxlength="255"
-                            placeholder="e.g. Graduation portraits"
-                            required
-                        >
-
-                    </div>
-
 
                     <div class="col-md-6">
 
@@ -1412,6 +1429,7 @@ function phodio_h(string $value): string
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<script src="chat_widget.js.php"></script>
 
 
 <script>
@@ -1897,7 +1915,8 @@ function buildProgressHtml(
 
                 <h3 class="h6 mb-1">
                     ${escapeHtml(
-                        booking.title
+                        booking.package_type ||
+                        'Photography session'
                     )}
                 </h3>
 
@@ -2111,6 +2130,78 @@ function buildProgressHtml(
 }
 
 
+let clientChat = null;
+
+
+function mountClientChat(
+    booking
+) {
+
+    const surface =
+        document.getElementById(
+            'chatSurface'
+        );
+
+    if (!surface) {
+        return;
+    }
+
+    const subtitle =
+        document.getElementById(
+            'chatSubtitle'
+        );
+
+    surface.hidden = false;
+
+    if (subtitle) {
+        subtitle.textContent =
+            '#' +
+            Number(
+                booking.id
+            );
+    }
+
+    if (
+        clientChat &&
+        clientChat.destroy
+    ) {
+        clientChat.destroy();
+    }
+
+    if (!window.PhodioChat) {
+        return;
+    }
+
+    clientChat =
+        window.PhodioChat.mount({
+            container:
+                document.getElementById(
+                    'clientChatMount'
+                ),
+
+            bookingId:
+                Number(
+                    booking.id
+                ),
+
+            endpoint:
+                'chat.php',
+
+            title:
+                'Message the studio',
+
+            placeholder:
+                'Ask the studio a question…',
+
+            emptyText:
+                'No messages yet. Ask the studio anything about this booking.',
+
+            pollMs:
+                15000
+        });
+}
+
+
 async function loadBookingDetails(
     id,
     silent = false
@@ -2186,6 +2277,11 @@ async function loadBookingDetails(
             buildProgressHtml(
                 data.booking
             );
+
+
+        mountClientChat(
+            data.booking
+        );
 
 
         const editButton =
@@ -2266,12 +2362,6 @@ function editBooking(
         'saveBookingButton'
     ).textContent =
         'Update request';
-
-
-    document.getElementById(
-        'sessionTitle'
-    ).value =
-        booking.title || '';
 
 
     document.getElementById(
@@ -2998,16 +3088,6 @@ document
                                         document.getElementById(
                                             'recPeople'
                                         ).value;
-
-
-                                    document.getElementById(
-                                        'sessionTitle'
-                                    ).value =
-                                        document.getElementById(
-                                            'recEventType'
-                                        )
-                                        .selectedOptions[0]
-                                        .text;
 
 
                                     document.getElementById(

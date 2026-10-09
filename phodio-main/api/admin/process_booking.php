@@ -12,7 +12,6 @@ $catalog = phodio_package_catalog();
 $serviceTypes = phodio_service_types();
 $id = filter_var($_POST['booking_id'] ?? null, FILTER_VALIDATE_INT);
 $id = ($id === false || $id === null || $id < 1) ? null : (int) $id;
-$title = trim((string) ($_POST['title'] ?? ''));
 $serviceType = trim((string) ($_POST['service_type'] ?? ''));
 $packageKey = trim((string) ($_POST['package_key'] ?? ''));
 $motif = trim((string) ($_POST['motif'] ?? ''));
@@ -40,7 +39,7 @@ if ($clientInput !== '') {
 }
 
 $startTime = phodio_slot_time($period);
-if ($title === '' || strlen($title) > 255 || !isset($serviceTypes[$serviceType]) || !isset($catalog[$packageKey]) || $attendees === false || $attendees < 1 || $attendees > 4 || !phodio_valid_booking_date($date) || $startTime === null) {
+if (!isset($serviceTypes[$serviceType]) || !isset($catalog[$packageKey]) || $attendees === false || $attendees < 1 || $attendees > 4 || !phodio_valid_booking_date($date) || $startTime === null) {
     header('Location: bookings.php?error=' . rawurlencode('Complete the booking details with a valid package, group size, date, and period.'));
     exit;
 }
@@ -73,9 +72,9 @@ try {
         }
         $status = 'Confirmed';
         $statusNote = 'Appointment scheduled by the studio.';
-        $insert = $conn->prepare("INSERT INTO bookings (client_id, title, service_type, package_key, package_type, motif, price, booking_date, start_time, slot_period, color_code, attendee_count, client_notes, status, status_note, status_updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
-        $types = 'i' . 'sssss' . 'd' . 'ssss' . 'i' . 'sss';
-        $insert->bind_param($types, $clientId, $title, $serviceType, $packageKey, $packageName, $motif, $price, $date, $startTime, $period, $color, $attendees, $clientNotes, $status, $statusNote);
+        $insert = $conn->prepare("INSERT INTO bookings (client_id, service_type, package_key, package_type, motif, price, booking_date, start_time, slot_period, color_code, attendee_count, client_notes, status, status_note, status_updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+        $types = 'i' . 'ssss' . 'd' . 'ssss' . 'i' . 'sss';
+        $insert->bind_param($types, $clientId, $serviceType, $packageKey, $packageName, $motif, $price, $date, $startTime, $period, $color, $attendees, $clientNotes, $status, $statusNote);
         $insert->execute();
         $bookingId = (int) $conn->insert_id;
         phodio_record_booking_update($conn, $bookingId, $status, $statusNote, 'admin', null);
@@ -104,9 +103,9 @@ try {
         }
         $slotPeriod = ($status === 'Cancelled' || ($existing['slot_period'] === null && !$scheduleChanged)) ? null : $period;
         $statusNote = $status === 'Cancelled' ? 'Cancelled appointment details edited by the studio.' : 'Appointment details updated by the studio.';
-        $update = $conn->prepare('UPDATE bookings SET client_id = ?, title = ?, service_type = ?, package_key = ?, package_type = ?, motif = ?, price = ?, booking_date = ?, start_time = ?, slot_period = ?, color_code = ?, attendee_count = ?, client_notes = ?, status_note = ?, status_updated_at = NOW() WHERE id = ?');
-        $types = 'i' . 'sssss' . 'd' . 'ssss' . 'i' . 'ss' . 'i';
-        $update->bind_param($types, $clientId, $title, $serviceType, $packageKey, $packageName, $motif, $price, $date, $startTime, $slotPeriod, $color, $attendees, $clientNotes, $statusNote, $id);
+        $update = $conn->prepare('UPDATE bookings SET client_id = ?, service_type = ?, package_key = ?, package_type = ?, motif = ?, price = ?, booking_date = ?, start_time = ?, slot_period = ?, color_code = ?, attendee_count = ?, client_notes = ?, status_note = ?, status_updated_at = NOW() WHERE id = ?');
+        $types = 'i' . 'ssss' . 'd' . 'ssss' . 'i' . 'ss' . 'i';
+        $update->bind_param($types, $clientId, $serviceType, $packageKey, $packageName, $motif, $price, $date, $startTime, $slotPeriod, $color, $attendees, $clientNotes, $statusNote, $id);
         $update->execute();
         phodio_record_booking_update($conn, $id, $status, $statusNote, 'admin', null);
     }

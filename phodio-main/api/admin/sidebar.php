@@ -1,4 +1,20 @@
 
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$isSuperAdmin = function_exists('phodio_is_super_admin')
+    ? phodio_is_super_admin()
+    : false;
+
+$signedInName = trim(
+    (string) ($_SESSION['admin_name'] ?? $_SESSION['admin'] ?? 'Studio')
+);
+
+$signedInRoleLabel = $isSuperAdmin ? 'Super admin' : 'Admin';
+?>
+
 <header class="main-header d-lg-none">
     <div class="d-flex justify-content-between align-items-center w-100">
         <div class="header-logo">
@@ -41,7 +57,15 @@
             </a>
         </div>-->
         <div class="mt-auto">
-           
+            <div class="px-3 pt-3 pb-2 d-none d-lg-block">
+                <div class="fw-bold text-white text-truncate">
+                    <?= htmlspecialchars($signedInName, ENT_QUOTES, 'UTF-8') ?>
+                </div>
+                <span class="badge <?= $isSuperAdmin ? 'bg-danger' : 'bg-primary' ?>">
+                    <?= htmlspecialchars($signedInRoleLabel, ENT_QUOTES, 'UTF-8') ?>
+                </span>
+            </div>
+
             <a href="#" data-bs-toggle="modal" data-bs-target="#logoutModal" class="nav-link-custom text-danger fw-bold">
                 <i class="ri-logout-box-r-line"></i> Logout
             </a>

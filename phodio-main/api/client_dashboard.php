@@ -327,7 +327,6 @@ if ($counts) {
 $recentStmt = $pdo->prepare("
     SELECT
         id,
-        title,
         service_type,
         package_type,
         motif,
@@ -359,13 +358,15 @@ $recentBookings =
 |--------------------------------------------------------------------------
 */
 
-function phodio_escape($value): string
-{
-    return htmlspecialchars(
-        (string) $value,
-        ENT_QUOTES,
-        'UTF-8'
-    );
+if (!function_exists('phodio_escape')) {
+    function phodio_escape($value): string
+    {
+        return htmlspecialchars(
+            (string) $value,
+            ENT_QUOTES,
+            'UTF-8'
+        );
+    }
 }
 
 
@@ -1485,7 +1486,7 @@ $initial =
                             $bookingTitle =
                                 trim(
                                     (string) (
-                                        $booking['title']
+                                        $booking['package_type']
                                         ?? ''
                                     )
                                 );

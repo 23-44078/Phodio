@@ -69,7 +69,6 @@ $clientId = (int) $_SESSION['client_id'];
 $stmt = $pdo->prepare("
     SELECT
         id,
-        title,
         service_type,
         package_key,
         package_type,

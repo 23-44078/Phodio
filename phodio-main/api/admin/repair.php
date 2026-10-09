@@ -1,5 +1,11 @@
 <?php
-require_once __DIR__ . '/../config/database.php'; // Ensure this matches your database connection file name
+require_once __DIR__ . '/../includes/auth.php';
+
+/*
+ * Roles live in includes/auth.php. Without this the repaired account would be
+ * created as a plain admin and the studio would lose super admin access to
+ * admin/team.php.
+ */
 
 // Your specific credentials
 $new_user = 'soulprint';
@@ -11,9 +17,18 @@ $hashed_pass = password_hash($new_pass, PASSWORD_DEFAULT);
 // 1. Clear the admin table to avoid 'Duplicate Entry' errors
 $conn->query("TRUNCATE TABLE admin RESTART IDENTITY");
 
-// 2. Insert the fresh credentials
-$stmt = $conn->prepare("INSERT INTO admin (username, password) VALUES (?, ?)");
-$stmt->bind_param("ss", $new_user, $hashed_pass);
+// 2. Insert the fresh credentials as a super admin, so the repaired account
+//    keeps access to admin/team.php.
+if (phodio_admin_roles_supported($conn->pdo())) {
+    $stmt = $conn->prepare(
+        "INSERT INTO admin (username, password, role, full_name, is_active)
+         VALUES (?, ?, 'super_admin', ?, TRUE)"
+    );
+    $stmt->bind_param("sss", $new_user, $hashed_pass, $new_user);
+} else {
+    $stmt = $conn->prepare("INSERT INTO admin (username, password) VALUES (?, ?)");
+    $stmt->bind_param("ss", $new_user, $hashed_pass);
+}
 
 echo "<div style='font-family: sans-serif; padding: 20px; background: #f4f4f4; border-radius: 10px; max-width: 500px; margin: 50px auto; border: 1px solid #ddd;'>";
 if ($stmt->execute()) {
