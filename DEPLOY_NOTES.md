@@ -2,6 +2,37 @@
 
 Read this before deploying or handing the project to another session.
 
+## Super admin removed
+
+Studio accounts are now all equal. Every signed-in account can open the whole
+panel, including **Studio accounts** (`admin/team.php`), which used to answer
+"Super admin only" for anyone whose `admin.role` was not `super_admin`.
+
+- `checkSuperAdmin()`, `phodio_is_super_admin()`, `currentAdminRoleLabel()` and
+  the `PHODIO_ROLE_*` constants are gone; those pages call `checkLogin()`.
+- The sidebar shows the account name and "Studio account" instead of the
+  Super admin / Admin badge, and now links to **Studio accounts** (it was only
+  reachable by typing the URL).
+- The role picker is gone from the accounts table and the create form. New
+  accounts are created with the column default (`admin`) and lose nothing.
+- One guard remains: you cannot disable or remove **your own** account, so the
+  studio cannot lock itself out of the panel.
+- `admin.role` is still read by the login code so a database that has not run
+  `20261009_01_admin_roles.sql` keeps working — it no longer gates anything.
+
+## Admin panel: one design language
+
+`dashboard.php` and `bookings.php` now use the same layout as the finance
+pages: one page header, summary cards, dark tables with empty states.
+
+- **Dashboard** — Income / Expenses / Liabilities / Net profit cards, a daily
+  goal card with a progress bar, breakdown tables with empty states, and quick
+  access to bookings, expenses, liabilities, tracker and accounts.
+- **Bookings** — pending / today / upcoming counters above the calendar. The
+  calendar, inspector, progress updates and client chat are unchanged.
+- **Studio accounts** — accounts / active / disabled counters, and the create
+  form and reset-password modal restyled to match.
+
 ## What changed in this release
 
 No new migration is required for this release — the SQL schema is untouched.

@@ -1,68 +1,57 @@
 <?php
 
 /**
- * Studio accounts (super admin only).
+ * Studio accounts.
  *
- * Lets the studio owner create admin accounts, promote them to super admin,
- * disable them, reset their password, or remove them.
+ * Every signed-in studio account can open this page: there is no super admin
+ * any more. An account can be created, disabled, given a new temporary
+ * password, or removed — but never the one you are signed in as.
  */
 
 require_once __DIR__ . '/functions.php';
 
-checkSuperAdmin();
+checkLogin();
 
 $pdo = $conn->pdo();
 
-$rolesSupported = phodio_admin_roles_supported($pdo);
-$currentAdmin = phodio_current_admin() ?? ['id' => 0, 'username' => '', 'role' => PHODIO_ROLE_ADMIN];
+$accountsSupported = phodio_admin_roles_supported($pdo);
+$currentAdmin = phodio_current_admin() ?? ['id' => 0, 'username' => '', 'name' => ''];
 
-if ($rolesSupported) {
+if ($accountsSupported) {
     $result = $conn->query(
         'SELECT
             id,
             username,
-            role,
             full_name,
             (COALESCE(is_active, TRUE))::int AS is_active,
-            last_login_at,
-            created_at
+            last_login_at
          FROM admin
          ORDER BY id'
     );
 } else {
     $result = $conn->query(
-        "SELECT
+        'SELECT
             id,
             username,
-            'super_admin' AS role,
             NULL AS full_name,
             1 AS is_active,
-            NULL AS last_login_at,
-            created_at
+            NULL AS last_login_at
          FROM admin
-         ORDER BY id"
+         ORDER BY id'
     );
 }
 
 $accounts = $result ? $result->fetch_all() : [];
 
-$superAdminCount = 0;
+$activeCount = 0;
 
 foreach ($accounts as $account) {
-    if (strtolower((string) $account['role']) === PHODIO_ROLE_SUPER_ADMIN) {
-        $superAdminCount++;
+    if ((int) ($account['is_active'] ?? 0) === 1) {
+        $activeCount++;
     }
 }
 
-function team_h($value): string
-{
-    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
-}
-
-function team_is_super(array $account): bool
-{
-    return strtolower((string) ($account['role'] ?? '')) === PHODIO_ROLE_SUPER_ADMIN;
-}
+$disabledCount = count($accounts) - $activeCount;
 
 $statusMessage = '';
 $errorMessage = '';
@@ -70,8 +59,6 @@ $errorMessage = '';
 if (isset($_GET['status'])) {
     $map = [
         'created' => 'Studio account created.',
-        'updated' => 'Studio account updated.',
-        'role' => 'Role updated.',
         'enabled' => 'Studio account re-enabled.',
         'disabled' => 'Studio account disabled.',
         'password' => 'Password reset.',
@@ -91,180 +78,134 @@ if (isset($_GET['error'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Studio accounts | SOULPRINT</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
-    <style>
-        .role-chip{display:inline-flex;align-items:center;gap:.35rem;border-radius:999px;padding:4px 10px;font-size:.72rem;font-weight:750;letter-spacing:.02em}
-        .role-super{background:rgba(239,68,68,.16);color:#fca5a5}
-        .role-admin{background:rgba(59,130,246,.16);color:#93c5fd}
-        .state-chip{border-radius:999px;padding:4px 10px;font-size:.72rem;font-weight:700}
-        .state-on{background:rgba(34,197,94,.16);color:#86efac}
-        .state-off{background:rgba(148,163,184,.16);color:#cbd5e1}
-        .team-table td{vertical-align:middle}
-        .team-actions{display:flex;flex-wrap:wrap;gap:.35rem;justify-content:flex-end}
-        .team-actions .btn{padding:.25rem .55rem;font-size:.75rem}
-        .form-control,.form-select{background:#222;border:1px solid #444;color:#fff}
-        .form-control:focus,.form-select:focus{background:#222;border-color:#3b82f6;color:#fff;box-shadow:0 0 0 3px rgba(59,130,246,.25)}
-        .form-label{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#a0a0a0}
-        code.migration{background:#0f0f0f;border:1px solid #333;border-radius:6px;padding:1px 6px;color:#93c5fd;font-size:.85em}
-    </style>
 </head>
 <body>
+
 <?php include __DIR__ . '/sidebar.php'; ?>
-<div class="main-content">
+
+<main class="main-content">
     <div class="container-fluid py-4">
 
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div class="page-head">
             <div>
-                <div class="text-uppercase small fw-bold text-info mb-1" style="letter-spacing:.12em">
-                    Super admin
-                </div>
-                <h1 class="h3 text-white fw-bold mb-1">Studio accounts</h1>
-                <p class="text-muted mb-0">
-                    Control who can open the management panel and what they can reach.
-                </p>
+                <h1 class="page-title"><i class="ri-team-line me-2"></i>Studio accounts</h1>
+                <p class="page-sub">Who can open the management panel, and what state each account is in.</p>
             </div>
-            <span class="role-chip role-super">
-                <i class="ri-shield-keyhole-line"></i>
-                <?= team_h(currentAdminRoleLabel()) ?>
-            </span>
+            <span class="chip chip-ok"><i class="ri-shield-check-line"></i>All accounts have full access</span>
         </div>
 
-        <?php if (!$rolesSupported): ?>
-            <div class="alert alert-warning border-0" style="background:rgba(245,158,11,.14);color:#fcd34d">
+        <?php if (!$accountsSupported): ?>
+            <div class="alert alert-warning border-0" style="background:rgba(245,158,11,.14);color:#fcd34d" role="alert">
                 <i class="ri-error-warning-line me-2"></i>
-                <strong>Roles are not active yet.</strong>
+                <strong>Account controls are not active yet.</strong>
                 Run <code class="migration">api/db/migrations/20261009_01_admin_roles.sql</code>
-                in the Supabase SQL Editor. Until then every studio account keeps full
-                access and the role controls below are unavailable.
+                in the Supabase SQL Editor. Until then existing accounts work normally,
+                but new ones cannot be created and accounts cannot be disabled.
             </div>
         <?php endif; ?>
 
         <?php if ($statusMessage !== ''): ?>
-            <div class="alert alert-success" role="status"><?= team_h($statusMessage) ?></div>
+            <div class="alert alert-success" role="status"><?= admin_h($statusMessage) ?></div>
         <?php endif; ?>
 
         <?php if ($errorMessage !== ''): ?>
-            <div class="alert alert-danger" role="alert"><?= team_h($errorMessage) ?></div>
+            <div class="alert alert-danger" role="alert"><?= admin_h($errorMessage) ?></div>
         <?php endif; ?>
+
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="label">Accounts</div>
+                <div class="value"><?= count($accounts) ?></div>
+                <div class="meta">Able to open the panel</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Active</div>
+                <div class="value text-success"><?= $activeCount ?></div>
+                <div class="meta">Signed in as <?= admin_h($currentAdmin['username'] ?? '') ?></div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Disabled</div>
+                <div class="value text-danger"><?= $disabledCount ?></div>
+                <div class="meta">Cannot sign in until re-enabled</div>
+            </div>
+        </div>
 
         <div class="row g-4">
             <div class="col-xl-8">
-                <div class="card shadow border-0">
-                    <div class="card-header d-flex justify-content-between align-items-center text-white">
-                        <span>
-                            <i class="ri-team-line me-2 text-info"></i>
-                            Accounts
-                        </span>
-                        <span class="small text-muted">
-                            <?= count($accounts) ?> total ·
-                            <?= $superAdminCount ?> super admin
-                        </span>
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="ri-team-line me-2"></i>Accounts</span>
+                        <span class="small text-muted"><?= count($accounts) ?> total</span>
                     </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-borderless text-white mb-0 team-table">
-                                <thead>
-                                    <tr class="small text-muted text-uppercase">
-                                        <th class="ps-4">Account</th>
-                                        <th>Role</th>
-                                        <th>Status</th>
-                                        <th>Last sign-in</th>
-                                        <th class="text-end pe-4">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
+
+                    <div class="table-responsive">
+                        <table class="table table-finance mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Account</th>
+                                    <th>Status</th>
+                                    <th>Last sign-in</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (count($accounts) > 0): ?>
                                     <?php foreach ($accounts as $account): ?>
                                         <?php
                                         $isSelf = (int) $account['id'] === (int) $currentAdmin['id'];
-                                        $isSuper = team_is_super($account);
-                                        $active = (int) $account['is_active'] === 1;
+                                        $active = (int) ($account['is_active'] ?? 0) === 1;
                                         $lastLogin = trim((string) ($account['last_login_at'] ?? ''));
                                         ?>
                                         <tr>
-                                            <td class="ps-4">
+                                            <td>
                                                 <div class="fw-bold">
-                                                    <?= team_h($account['username']) ?>
+                                                    <?= admin_h($account['username']) ?>
                                                     <?php if ($isSelf): ?>
                                                         <span class="badge bg-secondary ms-1">you</span>
                                                     <?php endif; ?>
                                                 </div>
                                                 <div class="small text-muted">
-                                                    <?= team_h($account['full_name'] ?? '') ?>
+                                                    <?= admin_h($account['full_name'] ?? '') ?>
                                                 </div>
                                             </td>
                                             <td>
-                                                <?php if ($rolesSupported): ?>
-                                                    <form method="post" action="process_team.php" class="d-flex gap-2">
-                                                        <input type="hidden" name="action" value="role">
-                                                        <input type="hidden" name="id" value="<?= (int) $account['id'] ?>">
-                                                        <select
-                                                            class="form-select form-select-sm"
-                                                            name="role"
-                                                            style="width:auto"
-                                                            <?= ($isSelf || $isSuper && $superAdminCount <= 1) ? 'disabled' : '' ?>
-                                                            aria-label="Role for <?= team_h($account['username']) ?>"
-                                                        >
-                                                            <option value="admin" <?= $isSuper ? '' : 'selected' ?>>Admin</option>
-                                                            <option value="super_admin" <?= $isSuper ? 'selected' : '' ?>>Super admin</option>
-                                                        </select>
-                                                        <button class="btn btn-sm btn-outline-light" type="submit">
-                                                            Save
-                                                        </button>
-                                                    </form>
-                                                <?php else: ?>
-                                                    <span class="role-chip role-super">
-                                                        <i class="ri-shield-keyhole-line"></i> Super admin
-                                                    </span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <span class="state-chip <?= $active ? 'state-on' : 'state-off' ?>">
+                                                <span class="chip <?= $active ? 'chip-ok' : 'chip-late' ?>">
                                                     <?= $active ? 'Active' : 'Disabled' ?>
                                                 </span>
                                             </td>
                                             <td class="small text-muted">
-                                                <?= $lastLogin !== '' ? team_h($lastLogin) : '—' ?>
+                                                <?= $lastLogin !== '' ? admin_h($lastLogin) : '—' ?>
                                             </td>
-                                            <td class="text-end pe-4">
-                                                <div class="team-actions">
+                                            <td class="text-end">
+                                                <div class="d-flex flex-wrap gap-2 justify-content-end">
                                                     <form method="post" action="process_team.php">
                                                         <input type="hidden" name="action" value="toggle">
                                                         <input type="hidden" name="id" value="<?= (int) $account['id'] ?>">
-                                                        <button
-                                                            class="btn btn-sm btn-outline-light"
-                                                            type="submit"
-                                                            <?= $isSelf ? 'disabled' : '' ?>
-                                                        >
+                                                        <button class="btn btn-sm btn-soft" type="submit"
+                                                                <?= ($isSelf || !$accountsSupported) ? 'disabled' : '' ?>>
                                                             <i class="ri-<?= $active ? 'close' : 'check' ?>-line"></i>
                                                             <?= $active ? 'Disable' : 'Enable' ?>
                                                         </button>
                                                     </form>
 
-                                                    <button
-                                                        type="button"
-                                                        class="btn btn-sm btn-outline-light"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#resetModal"
-                                                        data-account-id="<?= (int) $account['id'] ?>"
-                                                        data-account-name="<?= team_h($account['username']) ?>"
-                                                    >
+                                                    <button type="button" class="btn btn-sm btn-soft"
+                                                            data-bs-toggle="modal" data-bs-target="#resetModal"
+                                                            data-account-id="<?= (int) $account['id'] ?>"
+                                                            data-account-name="<?= admin_h($account['username']) ?>">
                                                         <i class="ri-key-2-line"></i> Reset
                                                     </button>
 
-                                                    <form
-                                                        method="post"
-                                                        action="process_team.php"
-                                                        onsubmit="return confirm('Remove <?= team_h($account['username']) ?> permanently?');"
-                                                    >
+                                                    <form method="post" action="process_team.php"
+                                                          onsubmit="return confirm('Remove <?= admin_h($account['username']) ?> permanently?');">
                                                         <input type="hidden" name="action" value="delete">
                                                         <input type="hidden" name="id" value="<?= (int) $account['id'] ?>">
-                                                        <button
-                                                            class="btn btn-sm btn-outline-danger"
-                                                            type="submit"
-                                                            <?= ($isSelf || ($isSuper && $superAdminCount <= 1)) ? 'disabled' : '' ?>
-                                                        >
+                                                        <button class="btn btn-sm btn-outline-danger" type="submit"
+                                                                <?= $isSelf ? 'disabled' : '' ?>
+                                                                aria-label="Remove <?= admin_h($account['username']) ?>">
                                                             <i class="ri-delete-bin-line"></i>
                                                         </button>
                                                     </form>
@@ -272,24 +213,32 @@ if (isset($_GET['error'])) {
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
+                                <?php else: ?>
+                                    <tr>
+                                        <td colspan="4">
+                                            <div class="empty-state">
+                                                <i class="ri-team-line"></i>
+                                                <h3>No studio accounts</h3>
+                                                <p>Add the first one with the form beside this table.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
 
             <div class="col-xl-4">
-                <div class="card shadow border-0">
-                    <div class="card-header text-white">
-                        <i class="ri-user-add-line me-2 text-info"></i>
-                        Add studio account
+                <div class="card">
+                    <div class="card-header">
+                        <i class="ri-user-add-line me-2"></i>Add studio account
                     </div>
                     <div class="card-body">
-                        <?php if (!$rolesSupported): ?>
+                        <?php if (!$accountsSupported): ?>
                             <p class="text-muted small mb-0">
-                                Enable roles first (see the notice above) to create
-                                accounts with the right level of access.
+                                Run the migration noted above to create accounts.
                             </p>
                         <?php else: ?>
                             <form method="post" action="process_team.php">
@@ -297,52 +246,23 @@ if (isset($_GET['error'])) {
 
                                 <div class="mb-3">
                                     <label class="form-label" for="newUsername">Username</label>
-                                    <input
-                                        class="form-control"
-                                        type="text"
-                                        id="newUsername"
-                                        name="username"
-                                        maxlength="50"
-                                        required
-                                        autocomplete="off"
-                                        placeholder="e.g. front-desk"
-                                    >
+                                    <input class="form-control" type="text" id="newUsername" name="username"
+                                           maxlength="50" required autocomplete="off" placeholder="e.g. front-desk">
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label" for="newFullName">Display name <span class="text-muted">(optional)</span></label>
-                                    <input
-                                        class="form-control"
-                                        type="text"
-                                        id="newFullName"
-                                        name="full_name"
-                                        maxlength="120"
-                                        autocomplete="off"
-                                        placeholder="e.g. Ana Reyes"
-                                    >
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label" for="newRole">Role</label>
-                                    <select class="form-select" id="newRole" name="role">
-                                        <option value="admin">Admin — schedule, expenses, messages</option>
-                                        <option value="super_admin">Super admin — full access + accounts</option>
-                                    </select>
+                                    <label class="form-label" for="newFullName">
+                                        Display name <span class="text-muted">(optional)</span>
+                                    </label>
+                                    <input class="form-control" type="text" id="newFullName" name="full_name"
+                                           maxlength="120" autocomplete="off" placeholder="e.g. Ana Reyes">
                                 </div>
 
                                 <div class="mb-3">
                                     <label class="form-label" for="newPassword">Temporary password</label>
-                                    <input
-                                        class="form-control"
-                                        type="text"
-                                        id="newPassword"
-                                        name="password"
-                                        minlength="8"
-                                        maxlength="72"
-                                        required
-                                        autocomplete="off"
-                                        placeholder="At least 8 characters"
-                                    >
+                                    <input class="form-control" type="text" id="newPassword" name="password"
+                                           minlength="8" maxlength="72" required autocomplete="off"
+                                           placeholder="At least 8 characters">
                                     <div class="form-text text-muted">
                                         Share it with the new user and ask them to change it after signing in.
                                     </div>
@@ -355,57 +275,36 @@ if (isset($_GET['error'])) {
                         <?php endif; ?>
                     </div>
                 </div>
-
-                <div class="card shadow border-0 mt-4">
-                    <div class="card-header text-white">
-                        <i class="ri-information-line me-2 text-info"></i>
-                        What each role can do
-                    </div>
-                    <div class="card-body small text-muted">
-                        <p class="mb-2">
-                            <strong class="text-white">Admin</strong> — schedule and edit
-                            appointments, post progress updates, record expenses and
-                            liabilities, and reply to client messages.
-                        </p>
-                        <p class="mb-0">
-                            <strong class="text-white">Super admin</strong> — everything an
-                            admin can do, plus managing studio accounts on this page.
-                        </p>
-                    </div>
-                </div>
             </div>
         </div>
+
     </div>
-</div>
+</main>
 
 <div class="modal fade" id="resetModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <form class="modal-content border-0" style="background:#1a1a1a;border-radius:15px" method="post" action="process_team.php">
+        <form class="modal-content" method="post" action="process_team.php">
             <input type="hidden" name="action" value="password">
             <input type="hidden" name="id" id="resetAccountId" value="">
+
             <div class="modal-header border-secondary">
-                <h2 class="modal-title fs-6 text-white">Reset password</h2>
+                <h2 class="modal-title fs-6">Reset password</h2>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+
             <div class="modal-body">
                 <p class="text-muted small">
                     Set a new temporary password for
                     <strong class="text-white" id="resetAccountName"></strong>.
                 </p>
+
                 <label class="form-label" for="resetPassword">New password</label>
-                <input
-                    class="form-control"
-                    type="text"
-                    id="resetPassword"
-                    name="password"
-                    minlength="8"
-                    maxlength="72"
-                    required
-                    autocomplete="off"
-                >
+                <input class="form-control" type="text" id="resetPassword" name="password"
+                       minlength="8" maxlength="72" required autocomplete="off">
             </div>
+
             <div class="modal-footer border-secondary">
-                <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Cancel</button>
                 <button type="submit" class="btn btn-primary">Reset password</button>
             </div>
         </form>

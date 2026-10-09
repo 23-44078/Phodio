@@ -11,6 +11,37 @@ foreach ($packages as $package) {
     $groupedPackages[$package['category']][] = $package;
 }
 $clients = $conn->query('SELECT id, firstname, lastname, username FROM users ORDER BY firstname, lastname');
+
+/*
+ * Three counters for the page header. The dates are built in PHP and passed
+ * as parameters so the queries behave the same on PostgreSQL and SQLite.
+ */
+$today = date('Y-m-d');
+
+$pendingRow = $conn->query(
+    "SELECT COUNT(*) AS total FROM bookings WHERE LOWER(status) = 'pending'"
+)->fetch_assoc();
+
+$todayStmt = $conn->prepare(
+    "SELECT COUNT(*) AS total FROM bookings WHERE booking_date = ? AND status <> 'Cancelled'"
+);
+
+$todayStmt->bind_param('s', $today);
+$todayStmt->execute();
+$todayRow = $todayStmt->get_result()->fetch_assoc();
+
+$upcomingStmt = $conn->prepare(
+    "SELECT COUNT(*) AS total FROM bookings WHERE booking_date > ? AND status <> 'Cancelled'"
+);
+
+$upcomingStmt->bind_param('s', $today);
+$upcomingStmt->execute();
+$upcomingRow = $upcomingStmt->get_result()->fetch_assoc();
+
+$pendingCount  = (int) ($pendingRow['total'] ?? 0);
+$todayCount    = (int) ($todayRow['total'] ?? 0);
+$upcomingCount = (int) ($upcomingRow['total'] ?? 0);
+
 function admin_bookings_h(string $value): string
 {
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
@@ -45,13 +76,39 @@ function admin_bookings_h(string $value): string
 <?php include __DIR__ . '/sidebar.php'; ?>
 <div class="main-content">
     <div class="container-fluid py-4">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-            <div><div class="text-uppercase small fw-bold text-info mb-1" style="letter-spacing:.12em">Central appointment scheduling</div><h1 class="h3 text-white fw-bold mb-1">Bookings &amp; Service Progress</h1><p class="text-muted mb-0">Manage appointment requests and post visible service-status updates for clients.</p></div>
-            <button type="button" class="btn btn-primary" id="newBookingButton"><i class="ri-add-line me-1"></i>Schedule appointment</button>
+        <div class="page-head">
+            <div>
+                <h1 class="page-title"><i class="ri-calendar-event-line me-2"></i>Bookings &amp; progress</h1>
+                <p class="page-sub">Manage appointment requests and post client-visible service updates.</p>
+            </div>
+            <button type="button" class="btn btn-primary px-3" id="newBookingButton">
+                <i class="ri-add-line me-1"></i>Schedule appointment
+            </button>
         </div>
         <?php if (isset($_GET['status']) && $_GET['status'] === 'saved'): ?><div class="alert alert-success">Booking details saved.</div><?php endif; ?>
         <?php if (isset($_GET['error'])): ?><div class="alert alert-danger"><?= admin_bookings_h((string) $_GET['error']) ?></div><?php endif; ?>
-        <div class="workflow-banner mb-4 text-white"><strong><i class="ri-information-line text-info me-2"></i>Client workflow</strong><span class="text-muted ms-2">New requests are held as Pending; update the status below as the session is confirmed, photographed, edited, and completed.</span></div>
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="label">Pending requests</div>
+                <div class="value text-warning"><?= $pendingCount ?></div>
+                <div class="meta">Waiting for the studio to confirm</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Today</div>
+                <div class="value text-info"><?= $todayCount ?></div>
+                <div class="meta"><?= admin_bookings_h(date('M d, Y')) ?></div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Upcoming</div>
+                <div class="value"><?= $upcomingCount ?></div>
+                <div class="meta">Scheduled after today</div>
+            </div>
+        </div>
+
+        <div class="workflow-banner mb-4 text-white">
+            <strong><i class="ri-information-line text-info me-2"></i>Client workflow</strong>
+            <span class="text-muted ms-2">New requests are held as Pending; update the status below as the session is confirmed, photographed, edited, and completed.</span>
+        </div>
 
         <div class="row g-4">
             <div class="col-xl-8">

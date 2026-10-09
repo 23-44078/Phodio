@@ -11,21 +11,14 @@
  * The login form never reveals which table a username belongs to, and both
  * failures return the same message.
  *
- * Roles only exist once 20261009_01_admin_roles.sql has been applied. Until
- * then every studio account behaves as a super admin, so the app keeps working
- * on a database that has not been migrated yet.
+ * There is no super admin: every studio account can open the whole panel,
+ * including the Studio accounts page. The `admin.role` column added by
+ * 20261009_01_admin_roles.sql is still read so an unmigrated database keeps
+ * working, but nothing in the app grants or denies access by it any more.
  */
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/booking_helpers.php';
-
-if (!defined('PHODIO_ROLE_ADMIN')) {
-    define('PHODIO_ROLE_ADMIN', 'admin');
-}
-
-if (!defined('PHODIO_ROLE_SUPER_ADMIN')) {
-    define('PHODIO_ROLE_SUPER_ADMIN', 'super_admin');
-}
 
 
 /*
@@ -118,7 +111,7 @@ function phodio_find_studio_account(PDO $pdo, string $username): ?array
                 id,
                 username,
                 password,
-                'super_admin' AS role,
+                'admin' AS role,
                 NULL AS full_name,
                 1 AS is_active
              FROM admin
@@ -158,7 +151,8 @@ function phodio_login_studio(
     if ((int) $account['is_active'] !== 1) {
         return [
             'ok' => false,
-            'error' => 'This studio account is disabled. Ask a super admin to re-enable it.',
+            'error' => 'This studio account is disabled. Ask another studio '
+                . 'account to re-enable it from Studio accounts.',
         ];
     }
 
@@ -172,12 +166,6 @@ function phodio_login_studio(
     phodio_start_session();
     session_regenerate_id(true);
 
-    $role = strtolower(trim((string) ($account['role'] ?? '')));
-
-    if ($role !== PHODIO_ROLE_SUPER_ADMIN) {
-        $role = PHODIO_ROLE_ADMIN;
-    }
-
     $displayName = trim((string) ($account['full_name'] ?? ''));
 
     if ($displayName === '') {
@@ -187,7 +175,6 @@ function phodio_login_studio(
     $_SESSION['auth_type'] = 'admin';
     $_SESSION['admin_id'] = (int) $account['id'];
     $_SESSION['admin'] = (string) $account['username'];
-    $_SESSION['admin_role'] = $role;
     $_SESSION['admin_name'] = $displayName;
 
     if (phodio_admin_roles_supported($pdo)) {
@@ -216,7 +203,7 @@ function phodio_login_studio(
 /**
  * The signed-in studio account, or null.
  *
- * @return array{id: int, username: string, role: string, name: string}|null
+ * @return array{id: int, username: string, name: string}|null
  */
 function phodio_current_admin(): ?array
 {
@@ -226,27 +213,13 @@ function phodio_current_admin(): ?array
         return null;
     }
 
-    $role = strtolower((string) ($_SESSION['admin_role'] ?? PHODIO_ROLE_ADMIN));
-
-    if ($role !== PHODIO_ROLE_SUPER_ADMIN) {
-        $role = PHODIO_ROLE_ADMIN;
-    }
-
     $username = (string) $_SESSION['admin'];
 
     return [
         'id' => (int) ($_SESSION['admin_id'] ?? 0),
         'username' => $username,
-        'role' => $role,
         'name' => (string) ($_SESSION['admin_name'] ?? $username),
     ];
-}
-
-function phodio_is_super_admin(): bool
-{
-    $admin = phodio_current_admin();
-
-    return $admin !== null && $admin['role'] === PHODIO_ROLE_SUPER_ADMIN;
 }
 
 
