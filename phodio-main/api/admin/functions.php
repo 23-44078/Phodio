@@ -120,6 +120,45 @@ function currentAdminRoleLabel(): string
     return phodio_is_super_admin() ? 'Super admin' : 'Admin';
 }
 
+/**
+ * Escape anything printed into a studio page.
+ *
+ * The finance tables echo text typed by studio staff (descriptions, creditor
+ * names), so every value goes through this on the way out.
+ */
+function admin_h($value): string
+{
+    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+}
+
+/**
+ * Money in the studio's currency, e.g. ₱1,250.00.
+ */
+function admin_money($amount): string
+{
+    return '₱' . number_format((float) $amount, 2);
+}
+
+/**
+ * A date column rendered as "Oct 09, 2026", or a dash when it is empty.
+ */
+function admin_date($value): string
+{
+    $value = trim((string) $value);
+
+    if ($value === '') {
+        return '—';
+    }
+
+    $timestamp = strtotime($value);
+
+    if ($timestamp === false) {
+        return admin_h($value);
+    }
+
+    return date('M d, Y', $timestamp);
+}
+
 function getDashboardData($conn, string $range = 'month'): array
 {
     $startDate = $range === 'today' ? date('Y-m-d') : date('Y-m-d', strtotime('-1 month'));

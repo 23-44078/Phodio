@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 /* style.css */
 :root {
     --primary-black: #0d0d0d;
@@ -13,7 +14,7 @@
 body {
     background-color: var(--primary-black);
     color: var(--text-white);
-    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
     display: flex;
     min-height: 100vh;
@@ -312,4 +313,147 @@ padding: 10px;
 
 .sidebar-overlay.show {
     display: block;
+}
+
+/* -------------------------------------------------------------------------
+   Finance pages: expenses, liabilities, daily tracker
+   Shared so the three pages match the dashboard. Only new class names are
+   added here, so the dashboard, bookings and team pages are untouched.
+------------------------------------------------------------------------- */
+.page-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 22px;
+}
+
+.page-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+.page-sub {
+    color: var(--muted-gray);
+    font-size: .85rem;
+    margin: 4px 0 0;
+}
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.stat-card {
+    background: var(--secondary-black);
+    border: 1px solid var(--glass-white);
+    border-radius: 12px;
+    padding: 17px 20px;
+}
+
+.stat-card .label {
+    color: var(--muted-gray);
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.stat-card .value {
+    font-size: 1.45rem;
+    font-weight: 800;
+    margin-top: 6px;
+    letter-spacing: -.02em;
+}
+
+.stat-card .meta {
+    color: var(--muted-gray);
+    font-size: .76rem;
+    margin-top: 4px;
+}
+
+.table-finance { margin: 0; color: var(--text-white); }
+
+.table-finance thead th {
+    background: #111111;
+    color: var(--muted-gray);
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+    padding: 12px 16px;
+    white-space: nowrap;
+}
+
+.table-finance tbody td {
+    padding: 13px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, .06);
+    vertical-align: middle;
+}
+
+.table-finance tbody tr:last-child td { border-bottom: 0; }
+.table-finance tbody tr:hover { background: rgba(255, 255, 255, .03); }
+
+.empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--muted-gray);
+}
+
+.empty-state i {
+    font-size: 2.2rem;
+    color: #3a3a3a;
+    display: block;
+    margin-bottom: 12px;
+}
+
+.empty-state h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-white);
+    margin: 0 0 6px;
+}
+
+.empty-state p { margin: 0; font-size: .87rem; }
+
+.btn-soft {
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(255, 255, 255, .12);
+    color: var(--text-white);
+    font-weight: 600;
+}
+
+.btn-soft:hover { background: rgba(255, 255, 255, .13); color: var(--text-white); }
+
+.form-label {
+    font-size: .74rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted-gray);
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 999px;
+    padding: 4px 11px;
+    font-size: .74rem;
+    font-weight: 700;
+}
+
+.chip-ok { background: rgba(34, 197, 94, .14); color: #6ee7b7; }
+.chip-late { background: rgba(239, 68, 68, .14); color: #fca5a5; }
+
+@media (max-width: 576px) {
+    .page-head { align-items: flex-start; }
+    .page-head .btn { width: 100%; }
 }

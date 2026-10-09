@@ -77,6 +77,28 @@ unused profile-photo upload (files do not persist on Vercel) was removed.
 `/client_login.php` is still a 307 redirect to `/login.php?as=client`, so the
 new design appears on `/login.php`.
 
+### New design: the finance pages match the dashboard
+
+`admin/expenses.php`, `admin/liabilities.php` and `admin/tracker.php` were
+still plain Bootstrap cards with a light table header, while the dashboard,
+bookings and team pages use the dark SoulPrint layout. They now share it:
+
+- one page header (uppercase title, one-line description, primary action);
+- three summary cards each — expenses shows this month / all time / average,
+  liabilities shows outstanding / due in 30 days / next due date, the tracker
+  shows logged income / clients served / goals met;
+- dark tables with an empty state instead of a blank panel;
+- centred modals with labelled fields;
+- Inter as the shared admin font.
+
+The shared pieces live in `admin/assets/css/style.css` as new class names
+(`.page-head`, `.stat-grid`, `.table-finance`, `.empty-state`, …), so the
+dashboard, bookings and team pages keep their current look.
+
+While rewriting them, every value printed by these three pages now goes through
+`admin_h()` — descriptions and creditor names are staff-typed text and were
+echoed unescaped before.
+
 ### Smaller hardening
 
 - `/login.php` throttles repeated failed attempts (10 per 10 minutes per
