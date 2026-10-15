@@ -16,26 +16,38 @@ code problem, and both take about twenty seconds to fix.
 
 ## 1. "Root Directory" — the one that is almost certainly wrong
 
-Vercel builds only what sits under the **Root Directory**. The PHP application
-lives in `phodio-main/api/`, so:
+**Vercel only looks for Serverless Functions inside an `api/` directory
+relative to the Root Directory.** That is a platform rule, not a config choice
+(see [vercel-community/php#189](https://github.com/vercel-community/php/issues/189):
+*"Only api folder is allowed for `functions`"*). A `functions` glob that does
+not start with `api/` can never match anything, and the build fails with:
 
-| Root Directory | Result |
-| --- | --- |
-| `phodio-main` | ✅ correct — `phodio-main/vercel.json` is read and every `api/**/*.php` file becomes a function |
-| `phodio-main/api` | ✅ **also works now** — `phodio-main/api/vercel.json` is read instead (it is the same config with the `api/` prefix removed) |
-| repo root (`.`) | ❌ nothing works — no `vercel.json` is found at all |
+```
+The pattern "*.php" defined in `functions` doesn't match any
+Serverless Functions inside the `api` directory.
+```
 
-> The project created from the GitHub integration reported
-> `rootDirectory: "phodio-main/api"`. That is why the site showed raw PHP
-> source instead of running: with that root, no `vercel.json` was found, so
-> **no PHP functions were built** and every `.php` file was uploaded as a
-> static text file.
+So the Root Directory has to be the folder that **contains** `api/` — that is
+`phodio-main`, not `phodio-main/api`:
 
-**Fix:** Project → **Settings → Git → Root Directory** → set it to
-`phodio-main` → **Save** → **Deployments → ⋯ → Redeploy**.
+| Root Directory | What Vercel scans for functions | Result |
+| --- | --- | --- |
+| `phodio-main` | `phodio-main/api/` | ✅ correct — `vercel.json` is read and every PHP file becomes a function |
+| `phodio-main/api` | `phodio-main/api/api/` — does not exist | ❌ build fails with the "unmatched function pattern" error |
+| repo root (`.`) | `./api/` — does not exist | ❌ nothing is deployed as a function |
 
-You do not have to change it if you do not want to: the `phodio-main/api`
-variant of the config now works too, so a plain **Redeploy** is enough.
+> The project created from the GitHub integration was built with
+> `rootDirectory: "phodio-main/api"`, which is why the very first deployment
+> showed raw PHP source: no `vercel.json` was found at that root, so **no PHP
+> functions were created** and every `.php` file was uploaded as a static text
+> file.
+
+**Fix — this is a required setting, there is no way around it:**
+Project → **Settings → Git → Root Directory** → `phodio-main` → **Save** →
+**Deployments → ⋯ → Redeploy**.
+
+Verify it took effect before redeploying: the same screen shows the current
+value, and it must read `phodio-main` (not `phodio-main/api`).
 
 ## 2. "Protected Deployment" / Vercel login page
 
@@ -80,8 +92,10 @@ them (`@` becomes `%40`).
 
 1. Go to <https://vercel.com/new> and sign in with GitHub.
 2. **Import Git Repository** → pick `23-44078/Phodio`.
-3. Set **Root Directory** to `phodio-main` (Edit next to Root Directory) — this
-   is the step people miss. Leave **Framework Preset** on *Other*.
+3. Set **Root Directory** to `phodio-main` — press **Edit** next to it and pick
+   the folder that contains `api/`. This is the step people miss, and it is the
+   one that breaks the build if you get it wrong (see the box at the top of this
+   file). Leave **Framework Preset** on *Other*.
 4. Expand **Environment Variables** and add:
 
    | Name | Value | Environments |
@@ -149,23 +163,17 @@ without that table the client portal cannot stay logged in.
 
 ## How the Vercel setup works
 
-There are **two** `vercel.json` files, and Vercel reads whichever one sits at
-its Root Directory:
+`phodio-main/vercel.json` does three things:
 
-- `phodio-main/vercel.json` — used when the Root Directory is `phodio-main`.
-  Functions are `api/*.php` + `api/**/*.php`; routes map `/` → `api/index.php`,
-  `/admin/dashboard.php` → `api/admin/dashboard.php`, and so on.
-- `phodio-main/api/vercel.json` — used when the Root Directory is
-  `phodio-main/api`. It is the same configuration with the `api/` prefix
-  stripped from every path, so `/` → `/index.php`.
-
-Both do three things:
-
-1. Run every PHP file as a serverless function with the `vercel-php` runtime
-   (`vercel-php@0.9.0` = PHP 8.5, 512 MB, 30 s).
-2. Map the original URL layout onto those functions, so existing pages and
-   links keep working unchanged.
-3. Serve the admin stylesheet through `api/admin/assets/css.php`, because
+1. Runs every PHP file under `api/` (including `api/admin/**`) as a serverless
+   function with the `vercel-php` runtime — `vercel-php@0.9.0` = PHP 8.5,
+   512 MB memory, 30 s `maxDuration`. Both globs start with `api/` because
+   that is the only place Vercel will discover functions.
+2. Maps the original URL layout onto those functions, so existing pages and
+   links keep working unchanged:
+   `/` → `api/index.php`, `/client_login.php` → `api/client_login.php`,
+   `/admin/dashboard.php` → `api/admin/dashboard.php`, and so on.
+3. Serves the admin stylesheet through `api/admin/assets/css.php`, because
    static files sitting next to PHP functions are not served on Vercel.
 
 Each function bundles the whole project at `/var/task/user`, which is why the
@@ -184,5 +192,4 @@ application's `require __DIR__ . '/...'` calls keep working.
 - **No email or background jobs.** Everything runs inside the request
   (30s `maxDuration`, 512 MB memory).
 - `tools/`, the `*.sql` files and the session debug helper are excluded from the
-  deployment by `.vercelignore` (one at the project root, one inside `api/`);
-  they stay in the repository only for local work.
+  deployment by `.vercelignore`; they stay in the repository only for local work.

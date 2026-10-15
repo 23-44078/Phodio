@@ -1,8 +1,0 @@
-# Used only when Vercel's "Root Directory" is set to phodio-main/api.
-# Keeps the manual SQL migrations and local tooling out of the bundle.
-db/
-*.sql
-*.md
-.DS_Store
-.git
-.vercel

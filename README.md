@@ -29,10 +29,12 @@ Full walkthrough, smoke tests and limitations:
 Two Vercel dashboard settings cause nearly every failure — neither is a code
 problem:
 
-- **Settings → Git → Root Directory.** The project created from the GitHub
-  integration was built with `phodio-main/api`, so no PHP functions were
-  created and the site served raw `.php` source. Set it to `phodio-main` and
-  redeploy. (`phodio-main/api` also works now — see the guide.)
+- **Settings → Git → Root Directory.** It must be `phodio-main` — not
+  `phodio-main/api`, and not the repository root. Vercel only discovers
+  Serverless Functions inside an `api/` directory relative to that setting, so
+  with `phodio-main/api` it looks for `phodio-main/api/api/`, finds nothing, and
+  the build fails with "The pattern *.php defined in functions doesn't match
+  any Serverless Functions inside the api directory."
 - **Settings → Deployment Protection → Vercel Authentication.** If the URL
   shows a Vercel login screen, this is on. Set it to *Disabled*.
 

@@ -9,18 +9,17 @@ Supabase PostgreSQL. The UI, pages and business logic are unchanged.
 
 | File | Purpose |
 | --- | --- |
-| `vercel.json` | PHP runtime + URL routes, used when the Vercel **Root Directory** is `phodio-main` |
-| `api/vercel.json` | The same config for when the Root Directory is `phodio-main/api` (the `api/` prefix is stripped) |
+| `vercel.json` | PHP runtime + URL routes. **Only works with the Vercel Root Directory set to `phodio-main`** — Vercel only discovers functions under `<root>/api/` |
 | `supabase_schema.sql` | Full PostgreSQL schema and seed data for Supabase |
 | `api/db/migrations/` | Extra SQL to run against a database created earlier |
 | `api/config/database.php` | PDO/PostgreSQL connection read from `DATABASE_URL`, with a `mysqli`-compatible shim so the existing queries keep working |
 | `api/php.ini` | PHP settings used inside the Vercel function (`session.save_path=/tmp`, errors off) |
-| `.vercelignore` (two) | Keep SQL dumps, docs and `tools/` out of the deployment, for either Root Directory |
+| `.vercelignore` | Keeps SQL dumps, docs and `tools/` out of the deployment |
 | `tools/` | Local CLI helpers, never deployed or reachable over HTTP |
 
 **If the deployment looks broken, check two dashboard settings first:**
-**Root Directory** (Settings → Git) and **Deployment Protection** (Settings) —
-the setup guide opens with both.
+**Root Directory** (Settings → Git, must be `phodio-main`) and **Deployment
+Protection** (Settings) — the setup guide opens with both.
 
 The only PHP version with the required `pdo_pgsql` extension is the
 `vercel-php` community runtime; see the setup guide for the deployment steps.
