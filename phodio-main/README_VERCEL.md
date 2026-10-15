@@ -9,7 +9,8 @@ Supabase PostgreSQL. The UI, pages and business logic are unchanged.
 
 | File | Purpose |
 | --- | --- |
-| `api/vercel.json` | PHP runtime + URL routes. **The Vercel Root Directory must be `phodio-main/api`** — Vercel only discovers functions under `<root>/api/`, and this file is what makes the PHP in `api/api/` run |
+| `api/vercel.json` | Declares **one** function (`api/router.php`) and routes everything to it. **Root Directory must be `phodio-main/api`**, and the function count must stay at 1 — the Hobby plan allows only 12 |
+| `api/api/router.php` | Front controller: maps the requested URL to the matching PHP script. This is what keeps the deployment to a single function |
 | `supabase_schema.sql` | Full PostgreSQL schema and seed data for Supabase |
 | `api/api/db/migrations/` | Extra SQL to run against a database created earlier |
 | `api/api/config/database.php` | PDO/PostgreSQL connection read from `DATABASE_URL`, with a `mysqli`-compatible shim so the existing queries keep working |

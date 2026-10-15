@@ -71,6 +71,21 @@ project has **Deployment Protection** turned on.
 Authentication** → set to **Disabled** (or *Only Preview Deployments* if you
 want previews private but the production domain public).
 
+## 3. "No more than 12 Serverless Functions" — Hobby plan limit
+
+If the build log ends with:
+
+```
+No more than 12 Serverless Functions can be added to a Deployment on the
+Hobby plan.
+```
+
+then the `functions` globs match more than 12 PHP files. The Hobby plan caps a
+deployment at 12, and this application has 41 PHP files — which is why
+`vercel.json` declares a single front controller, `api/router.php`, and routes
+everything to it. Do not change the glob back to `api/**/*.php`; that turns
+every PHP file into its own function and breaks the build again.
+
 ---
 
 ## Step 1 — Create the database (Supabase)
@@ -176,24 +191,55 @@ without that table the client portal cannot stay logged in.
 
 ## How the Vercel setup works
 
-`phodio-main/api/vercel.json` does three things:
+### One function, not 38
 
-1. Runs every PHP file as a serverless function with the `vercel-php` runtime —
-   `vercel-php@0.9.0` = PHP 8.5, 512 MB memory, 30 s `maxDuration`. Both globs
-   start with `api/`, because that is the only place Vercel discovers
-   functions; they match the application in `api/api/`.
-2. Maps the original URL layout onto those functions, so existing pages and
-   links keep working unchanged: `/` → `/api/index.php`,
-   `/client_login.php` → `/api/client_login.php`,
-   `/admin/dashboard.php` → `/api/admin/dashboard.php`.
-3. Serves the admin stylesheet through `/api/admin/assets/css.php`, because
-   static files sitting next to PHP functions are not served on Vercel.
+The Vercel **Hobby plan allows only 12 Serverless Functions per deployment**.
+This application has 41 PHP files, so declaring them all as functions fails the
+build with:
+
+```
+No more than 12 Serverless Functions can be added to a Deployment on the
+Hobby plan. Create a team (Pro plan) to deploy more.
+```
+
+So `phodio-main/api/vercel.json` declares exactly **one** function —
+`api/router.php` — and routes every request to it:
+
+```json
+{
+  "functions": { "api/router.php": { "runtime": "vercel-php@0.9.0", "memory": 512, "maxDuration": 30 } },
+  "routes":    [ { "src": "/(.*)", "dest": "/api/router.php" } ]
+}
+```
+
+`api/api/router.php` is a front controller. It reads `REQUEST_URI`, maps it to
+the matching script inside `api/api/`, and `require`s it:
+
+| URL | dispatched to |
+| --- | --- |
+| `/` | `api/api/index.php` |
+| `/admin/` | `api/api/admin/index.php` |
+| `/admin/dashboard.php` | `api/api/admin/dashboard.php` |
+| `/health.php` | `api/api/health.php` |
+| `/admin/assets/css/style.css` | `api/api/admin/assets/css.php` |
+
+Vercel's routes are **rewrites**, so the browser keeps the original URL. That
+is what makes the application work unchanged: relative links, form actions and
+`header('Location: dashboard.php')` redirects all resolve exactly as they did
+on a normal PHP host. The router also sets `PHP_SELF` to the requested path,
+because the admin sidebar and the client header use it to highlight the active
+menu item.
 
 `php.ini` sits at `phodio-main/api/php.ini`, which is the Vercel root, so
-`vercel-php` merges it into every function.
+`vercel-php` merges it into the function.
 
-Each function bundles the whole project at `/var/task/user`, which is why the
+The function bundles the whole project at `/var/task/user`, which is why the
 application's `require __DIR__ . '/...'` calls keep working after the move.
+
+> **If you upgrade to Pro**, the 12-function limit disappears. You could then
+> switch back to one function per file (`api/*.php` + `api/**/*.php` globs and
+> a route per page), but there is no need to — the single-function setup is
+> also faster to cold-start, because everything shares one warm instance.
 
 ## Limitations to know about
 
