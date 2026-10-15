@@ -107,19 +107,31 @@ try {
          WHERE table_schema = 'public' AND table_name = 'phodio_sessions'"
     )->fetchColumn();
 
-    $report['ok'] = true;
+    // Tables the schema creates. If any are missing the schema was never run,
+    // or was only run partially, and the application cannot work without them.
+    $expectedTables = [
+        'admin', 'users', 'bookings', 'booking_updates', 'phodio_sessions',
+        'daily_tracker', 'expenses', 'liabilities',
+    ];
+
+    $present = $pdo->query(
+        "SELECT table_name FROM information_schema.tables
+         WHERE table_schema = 'public'"
+    )->fetchAll(PDO::FETCH_COLUMN);
+
+    $missing = array_values(array_diff($expectedTables, $present));
+
+    $report['ok'] = empty($missing);
     $report['database'] = 'connected';
     $report['public_tables'] = (int) $tables;
     $report['phodio_sessions'] = $hasSessions;
 
-    if ($tables < 1) {
+    if (!empty($missing)) {
+        $report['missing_tables'] = $missing;
         $report['hint'] =
-            'Connected, but no tables were found. Run supabase_schema.sql in ' .
-            'the Supabase SQL Editor.';
-    } elseif (!$hasSessions) {
-        $report['hint'] =
-            'Run api/db/migrations/20261015_phodio_sessions.sql: the client ' .
-            'portal needs the phodio_sessions table.';
+            'Run phodio-main/supabase_schema.sql in the Supabase SQL Editor. ' .
+            'It creates and seeds all 8 tables; the login and every page need ' .
+            'them. Missing: ' . implode(', ', $missing) . '.';
     }
 } catch (Throwable $error) {
     $report['database'] = 'failed';
