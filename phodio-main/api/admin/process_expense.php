@@ -1,5 +1,5 @@
 <?php
-include 'functions.php';
+require_once __DIR__ . '/functions.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $desc = $_POST['description'];

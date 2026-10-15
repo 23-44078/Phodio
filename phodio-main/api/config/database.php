@@ -7,13 +7,10 @@
  */
 
 if (session_status() === PHP_SESSION_NONE) {
-    // Vercel's PHP runtime has an ephemeral filesystem. /tmp is writable,
-    // but sessions are not guaranteed to survive a cold start.
-    ini_set('session.save_path', '/tmp/phodio-sessions');
-
-    if (!is_dir('/tmp/phodio-sessions')) {
-        @mkdir('/tmp/phodio-sessions', 0700, true);
-    }
+    // Vercel's PHP runtime has an ephemeral filesystem. /tmp is the only
+    // writable location, but sessions are not guaranteed to survive a
+    // cold start of a serverless function.
+    ini_set('session.save_path', '/tmp');
 }
 
 date_default_timezone_set('Asia/Manila');

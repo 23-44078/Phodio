@@ -1,0 +1,8 @@
+# Keep database dumps, documentation and local tooling out of the
+# Vercel deployment. The schema files are only meant to be run manually
+# inside the Supabase SQL editor.
+*.sql
+*.md
+.git
+.vercel
+.DS_Store
