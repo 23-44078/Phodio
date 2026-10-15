@@ -1,0 +1,84 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "*.php": {
+      "runtime": "vercel-php@0.9.0",
+      "memory": 512,
+      "maxDuration": 30
+    },
+    "**/*.php": {
+      "runtime": "vercel-php@0.9.0",
+      "memory": 512,
+      "maxDuration": 30
+    }
+  },
+  "routes": [
+    {
+      "src": "/",
+      "dest": "/index.php"
+    },
+    {
+      "src": "/admin/?",
+      "dest": "/admin/index.php"
+    },
+    {
+      "src": "/admin/assets/css/style.css",
+      "dest": "/admin/assets/css.php"
+    },
+    {
+      "src": "/assets/css/style.css",
+      "dest": "/admin/assets/css.php"
+    },
+    {
+      "src": "/admin/(.*)",
+      "dest": "/admin/$1"
+    },
+    {
+      "src": "/health.php",
+      "dest": "/health.php"
+    },
+    {
+      "src": "/client_login.php",
+      "dest": "/client_login.php"
+    },
+    {
+      "src": "/client_dashboard.php",
+      "dest": "/client_dashboard.php"
+    },
+    {
+      "src": "/register.php",
+      "dest": "/register.php"
+    },
+    {
+      "src": "/logout.php",
+      "dest": "/logout.php"
+    },
+    {
+      "src": "/client_booking.php",
+      "dest": "/client_booking.php"
+    },
+    {
+      "src": "/get_client_booking_details.php",
+      "dest": "/get_client_booking_details.php"
+    },
+    {
+      "src": "/load_client_events.php",
+      "dest": "/load_client_events.php"
+    },
+    {
+      "src": "/process_client_booking.php",
+      "dest": "/process_client_booking.php"
+    },
+    {
+      "src": "/recommend_packages.php",
+      "dest": "/recommend_packages.php"
+    },
+    {
+      "src": "/(.*\\.php)",
+      "dest": "/$1"
+    },
+    {
+      "handle": "filesystem"
+    }
+  ]
+}

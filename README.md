@@ -23,3 +23,17 @@ Vercel with a Supabase PostgreSQL database.
 
 Full walkthrough, smoke tests and limitations:
 [`phodio-main/VERCEL_SUPABASE_SETUP.md`](phodio-main/VERCEL_SUPABASE_SETUP.md).
+
+### If the deployment already looks broken
+
+Two Vercel dashboard settings cause nearly every failure — neither is a code
+problem:
+
+- **Settings → Git → Root Directory.** The project created from the GitHub
+  integration was built with `phodio-main/api`, so no PHP functions were
+  created and the site served raw `.php` source. Set it to `phodio-main` and
+  redeploy. (`phodio-main/api` also works now — see the guide.)
+- **Settings → Deployment Protection → Vercel Authentication.** If the URL
+  shows a Vercel login screen, this is on. Set it to *Disabled*.
+
+Then open `/health.php`: it prints JSON saying exactly what is wrong.

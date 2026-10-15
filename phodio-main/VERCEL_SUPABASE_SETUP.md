@@ -5,7 +5,46 @@ The app is a PHP 8 application. On Vercel it runs through the community
 Supabase PostgreSQL through `DATABASE_URL`.
 
 - Repository: <https://github.com/23-44078/Phodio>
-- Application folder: **`phodio-main/`** ← this is the Vercel **Root Directory**
+- Application folder: **`phodio-main/`** ← the Vercel **Root Directory**
+
+---
+
+# If the deployment is already broken, read this first
+
+Two settings in the Vercel dashboard cause almost every failure. Neither is a
+code problem, and both take about twenty seconds to fix.
+
+## 1. "Root Directory" — the one that is almost certainly wrong
+
+Vercel builds only what sits under the **Root Directory**. The PHP application
+lives in `phodio-main/api/`, so:
+
+| Root Directory | Result |
+| --- | --- |
+| `phodio-main` | ✅ correct — `phodio-main/vercel.json` is read and every `api/**/*.php` file becomes a function |
+| `phodio-main/api` | ✅ **also works now** — `phodio-main/api/vercel.json` is read instead (it is the same config with the `api/` prefix removed) |
+| repo root (`.`) | ❌ nothing works — no `vercel.json` is found at all |
+
+> The project created from the GitHub integration reported
+> `rootDirectory: "phodio-main/api"`. That is why the site showed raw PHP
+> source instead of running: with that root, no `vercel.json` was found, so
+> **no PHP functions were built** and every `.php` file was uploaded as a
+> static text file.
+
+**Fix:** Project → **Settings → Git → Root Directory** → set it to
+`phodio-main` → **Save** → **Deployments → ⋯ → Redeploy**.
+
+You do not have to change it if you do not want to: the `phodio-main/api`
+variant of the config now works too, so a plain **Redeploy** is enough.
+
+## 2. "Protected Deployment" / Vercel login page
+
+If the preview URL shows a *Vercel* login screen instead of the app, the
+project has **Deployment Protection** turned on.
+
+**Fix:** Project → **Settings → Deployment Protection → Vercel
+Authentication** → set to **Disabled** (or *Only Preview Deployments* if you
+want previews private but the production domain public).
 
 ---
 
@@ -90,23 +129,44 @@ repository:
 DATABASE_URL="postgresql://..." php tools/reset_admin_password.php 'A-New-Password' soulprint
 ```
 
-If `/health.php` reports `database: failed`, the `DATABASE_URL` value is wrong,
-the password was not URL-encoded, or the environment variable was added only to
-Preview and not to Production — fix it under **Settings → Environment
-Variables**, then **Deployments → ⋯ → Redeploy**.
+### Reading `/health.php`
+
+`/health.php` is a diagnostic, not a page. It never includes
+`config/database.php` (which exits with a bare message), so it always prints
+JSON and tells you which of these went wrong:
+
+| `database` value | Meaning | Fix |
+| --- | --- | --- |
+| `connected` | everything works | — |
+| `not configured` | `DATABASE_URL` is empty | Settings → Environment Variables, add it to **Production** (and Preview), then **Redeploy** |
+| `misconfigured` | the string is not a valid PostgreSQL URI | copy the **Session pooler** string from Supabase → Connect; URL-encode `@` as `%40` and `#` as `%23` |
+| `driver missing` | `pdo_pgsql` is not loaded | `vercel.json` was not picked up — check the Root Directory |
+| `failed` | the host was reached but the login or database name was rejected | wrong password, wrong project ref, or the variable was added only to Preview |
+
+It also reports `phodio_sessions`. If that is `false`, run
+`api/db/migrations/20261015_phodio_sessions.sql` in the Supabase SQL editor —
+without that table the client portal cannot stay logged in.
 
 ## How the Vercel setup works
 
-`vercel.json` does three things:
+There are **two** `vercel.json` files, and Vercel reads whichever one sits at
+its Root Directory:
 
-1. Runs every PHP file under `api/` (including `api/admin/**`) as a serverless
-   function with the `vercel-php` runtime.
-2. Maps the original URL layout onto those functions, so the existing pages and
-   links keep working unchanged:
-   `/` → `api/index.php`, `/client_login.php` → `api/client_login.php`,
-   `/admin/dashboard.php` → `api/admin/dashboard.php`, and so on.
-3. Serves the admin stylesheet through `api/admin/assets/css.php`, because
-   static files next to PHP functions are not served on Vercel.
+- `phodio-main/vercel.json` — used when the Root Directory is `phodio-main`.
+  Functions are `api/*.php` + `api/**/*.php`; routes map `/` → `api/index.php`,
+  `/admin/dashboard.php` → `api/admin/dashboard.php`, and so on.
+- `phodio-main/api/vercel.json` — used when the Root Directory is
+  `phodio-main/api`. It is the same configuration with the `api/` prefix
+  stripped from every path, so `/` → `/index.php`.
+
+Both do three things:
+
+1. Run every PHP file as a serverless function with the `vercel-php` runtime
+   (`vercel-php@0.9.0` = PHP 8.5, 512 MB, 30 s).
+2. Map the original URL layout onto those functions, so existing pages and
+   links keep working unchanged.
+3. Serve the admin stylesheet through `api/admin/assets/css.php`, because
+   static files sitting next to PHP functions are not served on Vercel.
 
 Each function bundles the whole project at `/var/task/user`, which is why the
 application's `require __DIR__ . '/...'` calls keep working.
@@ -123,5 +183,6 @@ application's `require __DIR__ . '/...'` calls keep working.
   behaviour on Vercel. Move uploads to Supabase Storage if you need them.
 - **No email or background jobs.** Everything runs inside the request
   (30s `maxDuration`, 512 MB memory).
-- `tools/` and the `*.sql` files are excluded from the deployment by
-  `.vercelignore`; they stay in the repository only for local work.
+- `tools/`, the `*.sql` files and the session debug helper are excluded from the
+  deployment by `.vercelignore` (one at the project root, one inside `api/`);
+  they stay in the repository only for local work.
