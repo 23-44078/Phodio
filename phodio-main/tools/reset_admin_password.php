@@ -1,31 +1,55 @@
 <?php
-require_once __DIR__ . '/../config/database.php'; // Ensure this matches your database connection file name
+/**
+ * CLI tool: create or reset an admin account password.
+ *
+ * This file lives outside api/, so Vercel never exposes it over HTTP and the
+ * PHP runtime never executes it. Run it locally (or with any PHP 8 install)
+ * while pointing DATABASE_URL at your Supabase database:
+ *
+ *   DATABASE_URL="postgresql://..." php tools/reset_admin_password.php 'NewPassword' soulprint
+ *
+ * Usage: php tools/reset_admin_password.php <new-password> [username]
+ */
 
-// Your specific credentials
-$new_user = 'soulprint';
-$new_pass = 'SoulprintMP';
+declare(strict_types=1);
 
-// Generate a fresh, clean hash using YOUR server's PHP engine
-$hashed_pass = password_hash($new_pass, PASSWORD_DEFAULT);
-
-// 1. Clear the admin table to avoid 'Duplicate Entry' errors
-$conn->query("TRUNCATE TABLE admin RESTART IDENTITY");
-
-// 2. Insert the fresh credentials
-$stmt = $conn->prepare("INSERT INTO admin (username, password) VALUES (?, ?)");
-$stmt->bind_param("ss", $new_user, $hashed_pass);
-
-echo "<div style='font-family: sans-serif; padding: 20px; background: #f4f4f4; border-radius: 10px; max-width: 500px; margin: 50px auto; border: 1px solid #ddd;'>";
-if ($stmt->execute()) {
-    echo "<h2 style='color:#2ecc71'>✅ Repair Successful!</h2>";
-    echo "<p>The user <b>$new_user</b> has been created.</p>";
-    echo "<p><b>Your Password:</b> <code style='background:#eee; padding:2px 5px;'>SoulprintMP</code></p>";
-    echo "<p style='font-size: 0.8rem; color: #666;'>Generated Hash: <br><small style='word-break: break-all;'>" . $hashed_pass . "</small></p>";
-    echo "<hr>";
-    echo "<a href='login.php' style='display:inline-block; background:#3498db; color:white; padding:10px 20px; text-decoration:none; border-radius:5px;'>Proceed to Login</a>";
-} else {
-    echo "<h2 style='color:#e74c3c'>❌ Repair Failed</h2>";
-    echo "<p>Error: " . $conn->error . "</p>";
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit("Not found\n");
 }
-echo "</div>";
-?>
+
+$password = $argv[1] ?? '';
+$username = $argv[2] ?? 'soulprint';
+
+if ($password === '') {
+    fwrite(
+        STDERR,
+        "Usage: php tools/reset_admin_password.php <new-password> [username]\n"
+    );
+
+    exit(1);
+}
+
+require_once __DIR__ . '/../api/config/database.php';
+
+$hash = password_hash($password, PASSWORD_DEFAULT);
+
+$lookup = $conn->prepare('SELECT id FROM admin WHERE username = ?');
+$lookup->bind_param('s', $username);
+$lookup->execute();
+
+$existing = $lookup->get_result()->fetch_assoc();
+
+if ($existing) {
+    $update = $conn->prepare('UPDATE admin SET password = ? WHERE username = ?');
+    $update->bind_param('ss', $hash, $username);
+    $update->execute();
+
+    echo "Updated the password for admin user '{$username}'.\n";
+} else {
+    $insert = $conn->prepare('INSERT INTO admin (username, password) VALUES (?, ?)');
+    $insert->bind_param('ss', $username, $hash);
+    $insert->execute();
+
+    echo "Created admin user '{$username}'.\n";
+}
