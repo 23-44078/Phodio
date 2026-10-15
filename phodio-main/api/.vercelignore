@@ -1,0 +1,7 @@
+# Used when the Vercel "Root Directory" is phodio-main/api.
+# Keeps the manual SQL migrations out of the function bundle.
+*.sql
+*.md
+.DS_Store
+.git
+.vercel

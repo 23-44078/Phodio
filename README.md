@@ -10,14 +10,15 @@ A PHP 8 + PostgreSQL booking and studio-management system:
 The application lives in [`phodio-main/`](phodio-main). It is ready to run on
 Vercel with a Supabase PostgreSQL database.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F23-44078%2FPhodio&root-directory=phodio-main&project-name=phodio&repository-name=phodio&env=DATABASE_URL&envDescription=Supabase%20Session%20pooler%20PostgreSQL%20URI&envLink=https%3A%2F%2Fgithub.com%2F23-44078%2FPhodio%2Fblob%2Fmain%2Fphodio-main%2FVERCEL_SUPABASE_SETUP.md)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F23-44078%2FPhodio&root-directory=phodio-main%2Fapi&project-name=phodio&repository-name=phodio&env=DATABASE_URL&envDescription=Supabase%20Session%20pooler%20PostgreSQL%20URI&envLink=https%3A%2F%2Fgithub.com%2F23-44078%2FPhodio%2Fblob%2Fmain%2Fphodio-main%2FVERCEL_SUPABASE_SETUP.md)
 
 ## Deploy
 
 1. Run [`phodio-main/supabase_schema.sql`](phodio-main/supabase_schema.sql) in
    the Supabase SQL Editor.
 2. Import the repository at <https://vercel.com/new>.
-3. Set the Vercel **Root Directory** to `phodio-main`.
+3. Set the Vercel **Root Directory** to `phodio-main/api` — the folder that
+   contains the inner `api/` directory. This is the only value that works.
 4. Add the environment variable `DATABASE_URL` (Supabase *Session pooler* URI).
 5. Deploy.
 
@@ -26,16 +27,12 @@ Full walkthrough, smoke tests and limitations:
 
 ### If the deployment already looks broken
 
-Two Vercel dashboard settings cause nearly every failure — neither is a code
-problem:
-
-- **Settings → Git → Root Directory.** It must be `phodio-main` — not
-  `phodio-main/api`, and not the repository root. Vercel only discovers
-  Serverless Functions inside an `api/` directory relative to that setting, so
-  with `phodio-main/api` it looks for `phodio-main/api/api/`, finds nothing, and
-  the build fails with "The pattern *.php defined in functions doesn't match
-  any Serverless Functions inside the api directory."
-- **Settings → Deployment Protection → Vercel Authentication.** If the URL
-  shows a Vercel login screen, this is on. Set it to *Disabled*.
+- **Seeing raw PHP source instead of the app?** That was the old symptom: with
+  Root Directory `phodio-main/api` and no `vercel.json` at that root, no PHP
+  functions were built, so every `.php` file was served as static text. The
+  application now lives in `phodio-main/api/api/` with `vercel.json` next to
+  it, so a plain **Redeploy** fixes it. Nothing to change.
+- **Seeing a Vercel login screen?** **Settings → Deployment Protection →
+  Vercel Authentication** is on. Set it to *Disabled*.
 
 Then open `/health.php`: it prints JSON saying exactly what is wrong.
