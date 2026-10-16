@@ -1,5 +1,5 @@
 <?php 
-include 'functions.php'; 
+require_once __DIR__ . '/functions.php';
 
 // Fetch tracker data - latest first
 $tracker = $conn->query("SELECT *, (target - income_today) as gap FROM daily_tracker ORDER BY track_date DESC");
@@ -17,7 +17,7 @@ $tracker = $conn->query("SELECT *, (target - income_today) as gap FROM daily_tra
 </head>
 <body>
 
-<?php include 'sidebar.php'; ?>
+<?php include __DIR__ . '/sidebar.php'; ?>
 
 <div class="main-content">
     <div class="container-fluid mt-4">

@@ -14,6 +14,8 @@ function checkLogin(): void
 
 function getDashboardData( string $range = 'month'): array
 {
+    global $conn;
+
     $startDate = $range === 'today' ? date('Y-m-d') : date('Y-m-d', strtotime('-1 month'));
 
     $stmt = $conn->prepare("SELECT COALESCE(SUM(price), 0) AS total FROM bookings WHERE booking_date >= ? AND status <> 'Cancelled'");

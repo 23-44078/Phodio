@@ -1118,7 +1118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form
                 method="POST"
                 action="/client_login.php"
-                autocomplete="on"
+                autocomplete="off"
             >
 
 
@@ -1146,7 +1146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 'UTF-8'
                             ) ?>"
                             placeholder="you@example.com"
-                            autocomplete="username"
+                            autocomplete="off"
                             required
                             autofocus
                         >
@@ -1175,7 +1175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             id="password"
                             name="password"
                             placeholder="Enter your password"
-                            autocomplete="current-password"
+                            autocomplete="new-password"
                             required
                         >
 
