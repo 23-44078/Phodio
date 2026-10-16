@@ -285,6 +285,7 @@ body {
     <form
         method="POST"
         enctype="multipart/form-data"
+        autocomplete="off"
     >
 
         <div class="mb-2">
@@ -336,6 +337,7 @@ body {
                 class="form-control"
                 placeholder="Enter your Gmail"
                 value="<?= htmlspecialchars($_POST['username'] ?? '') ?>"
+                autocomplete="off"
                 required
             >
 
@@ -372,6 +374,7 @@ body {
                 name="password"
                 class="form-control"
                 placeholder="Enter a password"
+                autocomplete="new-password"
                 required
             >
 
