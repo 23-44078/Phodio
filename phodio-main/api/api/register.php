@@ -157,6 +157,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
     }
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| AJAX RESPONSE
+|--------------------------------------------------------------------------
+*/
+
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST' &&
+    isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+    strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
+) {
+    header('Content-Type: application/json');
+
+    echo json_encode([
+        'success' => $success !== '' ? $success : null,
+        'error'   => $error   !== '' ? $error   : null
+    ]);
+
+    exit;
+}
+
 ?>
 
 <!DOCTYPE html>
