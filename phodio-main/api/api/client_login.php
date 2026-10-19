@@ -579,13 +579,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             will-change: transform;
 
-            transition:
-                transform .55s
-                cubic-bezier(0.4, 0, 0.2, 1);
+            display: grid;
 
-            display: flex;
+            grid-template-columns: 1fr;
 
             align-items: center;
+
+            justify-items: center;
 
             padding: 48px;
 
@@ -939,60 +939,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
         /* --------------------------------------------------
-           SIGNUP SIDE
-        -------------------------------------------------- */
+           THE TWO HALVES
 
-        .signup-side {
-
-            position: absolute;
-
-            top: 0;
-            bottom: 0;
-            left: 0;
-
-            width: 47.5%;
-
-            z-index: 2;
-
-            display: flex;
-
-            align-items: center;
-
-            padding: 48px;
-
-            background:
-                #0e1219;
-
-            transform: translateX(-100%);
-
-            opacity: 0;
-
-            pointer-events: none;
-
-            will-change: transform, opacity;
-
-            transition:
-                transform .55s
-                cubic-bezier(0.4, 0, 0.2, 1),
-                opacity .3s ease;
-        }
-
-
-        /* --------------------------------------------------
-           CONTENT CROSSFADE
+           One container, split down the middle: the brand
+           half on the left and the form half on the right.
+           Signing up only swaps those two halves - nothing
+           enters or leaves the container.
         -------------------------------------------------- */
 
         .login-side {
 
             transition:
                 transform .55s
-                cubic-bezier(0.4, 0, 0.2, 1),
+                cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+
+        /* Login and sign-up share the same half; they overlap and
+           crossfade instead of being two separate panels. */
+
+        .login-side > .login-content {
+
+            grid-area: 1 / 1;
+
+            width: 100%;
+
+            transition:
                 opacity .3s ease;
+        }
+
+
+        .signup-content {
+
+            opacity: 0;
+
+            pointer-events: none;
+        }
+
+        .login-wrapper.signup-active .login-content:not(.signup-content) {
+
+            opacity: 0;
+
+            pointer-events: none;
+        }
+
+        .login-wrapper.signup-active .signup-content {
+
+            opacity: 1;
+
+            pointer-events: auto;
         }
 
 
         /* --------------------------------------------------
            SLIDE DIRECTIONS
+
+           Brand half: left  -> right  (90.476% of its own width)
+           Form half:  right -> left   (110.526% of its own width)
+
+           Both percentages land exactly on the container edges,
+           so the two halves simply trade places.
         -------------------------------------------------- */
 
         .login-wrapper.signup-active .brand-side {
@@ -1002,20 +1008,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .login-wrapper.signup-active .login-side {
 
-            transform: translateX(100%);
-
-            opacity: 0;
-
-            pointer-events: none;
-        }
-
-        .login-wrapper.signup-active .signup-side {
-
-            transform: translateX(0);
-
-            opacity: 1;
-
-            pointer-events: auto;
+            transform: translateX(-110.526%);
         }
 
 
@@ -1023,34 +1016,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
            SIGNUP compact spacing
         -------------------------------------------------- */
 
-        .signup-side .login-heading {
+        .signup-content .login-heading {
 
             margin-bottom: 18px;
         }
 
-        .signup-side .login-heading h2 {
+        .signup-content .login-heading h2 {
 
             font-size: 1.65rem;
         }
 
-        .signup-side .login-heading p {
+        .signup-content .login-heading p {
 
             font-size: .84rem;
         }
 
-        .signup-side .field {
+        .signup-content .field {
 
             margin-bottom: 10px;
         }
 
-        .signup-side .field label {
+        .signup-content .field label {
 
             margin-bottom: 5px;
 
             font-size: .78rem;
         }
 
-        .signup-side .input-wrapper input {
+        .signup-content .input-wrapper input {
 
             height: 40px;
 
@@ -1059,7 +1052,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: .85rem;
         }
 
-        .signup-side .field-row {
+        .signup-content .field-row {
 
             display: grid;
 
@@ -1068,24 +1061,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             gap: 8px;
         }
 
-        .signup-side .field-row .field {
+        .signup-content .field-row .field {
 
             margin-bottom: 10px;
         }
 
-        .signup-side .input-icon {
+        .signup-content .input-icon {
 
             font-size: 1rem;
         }
 
-        .signup-side .password-toggle {
+        .signup-content .password-toggle {
 
             width: 26px;
 
             height: 26px;
         }
 
-        .signup-side .login-button {
+        .signup-content .login-button {
 
             height: 42px;
 
@@ -1094,14 +1087,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: .85rem;
         }
 
-        .signup-side .security-note {
+        .signup-content .security-note {
 
             margin-top: 10px;
 
             font-size: .7rem;
         }
 
-        .signup-side .register-link {
+        .signup-content .register-link {
 
             margin-top: 14px;
 
@@ -1110,7 +1103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: .8rem;
         }
 
-        .signup-side .file-input {
+        .signup-content .file-input {
 
             width: 100%;
 
@@ -1133,7 +1126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             cursor: pointer;
         }
 
-        .signup-side .file-input::file-selector-button {
+        .signup-content .file-input::file-selector-button {
 
             padding: 6px 14px;
 
@@ -1156,8 +1149,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             cursor: pointer;
         }
 
-        .signup-side .error-message,
-        .signup-side .success-message {
+        .signup-content .error-message,
+        .signup-content .success-message {
 
             padding: 10px 12px;
 
@@ -1166,7 +1159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: .8rem;
         }
 
-        .signup-side .success-message {
+        .signup-content .success-message {
 
             display: flex;
 
@@ -1189,7 +1182,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             line-height: 1.5;
         }
 
-        .signup-side .success-message i {
+        .signup-content .success-message i {
 
             margin-top: 1px;
 
@@ -1199,7 +1192,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 1.05rem;
         }
 
-        .signup-side .optional {
+        .signup-content .optional {
 
             color:
                 var(--muted);
@@ -1260,43 +1253,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
 
-            .signup-side {
-
-                position: relative;
-
-                width: 100%;
-
-                left: auto;
-
-                padding: 34px 28px 38px;
-            }
-
-
-            .signup-side {
-
-                display: none;
-            }
-
-
-            .login-wrapper.signup-active .login-side {
-
-                display: none;
-            }
-
-
-            .login-wrapper.signup-active .signup-side {
-
-                display: flex;
-            }
-
+            /* Stacked layout: the halves have nowhere to swap to, so
+               they stay put and only the form content crossfades. */
 
             .login-wrapper.signup-active .brand-side,
-            .login-wrapper.signup-active .login-side,
-            .login-wrapper.signup-active .signup-side {
+            .login-wrapper.signup-active .login-side {
 
                 transform: none;
-
-                opacity: 1;
             }
 
         }
@@ -1339,12 +1302,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 padding: 30px 22px;
             }
 
-
-            .signup-side {
-
-                padding: 30px 22px;
-            }
-
         }
 
 
@@ -1352,7 +1309,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             .brand-side,
             .login-side,
-            .signup-side {
+            .login-side > .login-content {
 
                 transition: none;
             }
@@ -1600,14 +1557,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         </div>
 
-    </section>
+        <!-- SIGN UP (lives in the same panel so the two halves swap) -->
 
-
-    <!-- SIGNUP -->
-
-    <section class="signup-side" id="signupSide">
-
-        <div class="login-content">
+        <div class="login-content signup-content" id="signupContent">
 
 
             <div class="login-heading">
@@ -1846,7 +1798,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </a>
 
             </div>
-
 
         </div>
 
