@@ -1,5 +1,5 @@
 <?php 
-include 'functions.php'; 
+require_once __DIR__ . '/functions.php';
 checkLogin(); // This stops unauthorized admin immediately
 
 $range = isset($_GET['range']) ? $_GET['range'] : 'month';
@@ -94,7 +94,7 @@ $gap = ($today_track) ? ($today_track['target'] - $today_track['income_today']) 
 </head>
 <body>
 
-<?php include 'sidebar.php'; ?>
+<?php include __DIR__ . '/sidebar.php'; ?>
 
 <div class="main-content">
     <div class="container-fluid py-4">

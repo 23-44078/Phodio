@@ -157,6 +157,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
     }
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| AJAX RESPONSE
+|--------------------------------------------------------------------------
+|
+| When the request comes from the sliding sign-up form in client_login.php
+| return JSON so the page can display the result without a full reload.
+|
+*/
+
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST' &&
+    isset($_POST['register'])
+) {
+
+    $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
+        && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
+    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+
+    if ($isAjax || strpos($accept, 'application/json') !== false) {
+
+        header('Content-Type: application/json');
+
+        echo json_encode([
+            'success' => $success !== '' ? $success : null,
+            'error'   => $error   !== '' ? $error   : null
+        ]);
+
+        exit;
+    }
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -285,6 +319,7 @@ body {
     <form
         method="POST"
         enctype="multipart/form-data"
+        autocomplete="off"
     >
 
         <div class="mb-2">
@@ -336,6 +371,7 @@ body {
                 class="form-control"
                 placeholder="Enter your Gmail"
                 value="<?= htmlspecialchars($_POST['username'] ?? '') ?>"
+                autocomplete="off"
                 required
             >
 
@@ -372,6 +408,7 @@ body {
                 name="password"
                 class="form-control"
                 placeholder="Enter a password"
+                autocomplete="new-password"
                 required
             >
 

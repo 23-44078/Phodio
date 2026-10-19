@@ -1,5 +1,5 @@
 <?php 
-include 'functions.php'; 
+require_once __DIR__ . '/functions.php';
 // Assuming you have a function to get expenses, otherwise use a standard SQL query
 $expenses = $conn->query("SELECT * FROM expenses ORDER BY expense_date DESC");
 ?>
@@ -16,7 +16,7 @@ $expenses = $conn->query("SELECT * FROM expenses ORDER BY expense_date DESC");
 </head>
 <body>
 
-<?php include 'sidebar.php'; ?>
+<?php include __DIR__ . '/sidebar.php'; ?>
 
 <div class="main-content">
     <div class="container-fluid mt-4">

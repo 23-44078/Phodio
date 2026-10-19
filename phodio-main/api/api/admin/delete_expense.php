@@ -1,5 +1,5 @@
 <?php
-include 'functions.php';
+require_once __DIR__ . '/functions.php';
 
 if (isset($_GET['id'])) {
     $id = $_GET['id'];

@@ -1,5 +1,5 @@
 <?php 
-include 'functions.php'; 
+require_once __DIR__ . '/functions.php';
 // Fetching liabilities - grouped by date
 $liabilities = $conn->query("SELECT * FROM liabilities ORDER BY due_date ASC");
 ?>
@@ -16,7 +16,7 @@ $liabilities = $conn->query("SELECT * FROM liabilities ORDER BY due_date ASC");
 </head>
 <body>
 
-<?php include 'sidebar.php'; ?>
+<?php include __DIR__ . '/sidebar.php'; ?>
 
 <div class="main-content">
     <div class="container-fluid mt-4">

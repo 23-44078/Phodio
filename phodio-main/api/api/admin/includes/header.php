@@ -17,6 +17,6 @@
 </head>
 <body>
 
-<?php include 'sidebar.php'; ?>
+<?php include __DIR__ . '/../sidebar.php'; ?>
 
 <main class="main-content">

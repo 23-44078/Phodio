@@ -1,5 +1,5 @@
 <?php
-include 'functions.php';
+require_once __DIR__ . '/functions.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $date = $_POST['track_date'];
@@ -12,7 +12,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             VALUES (?, ?, ?, ?) 
                             ON CONFLICT (track_date) DO UPDATE SET income_today=EXCLUDED.income_today, client_today=EXCLUDED.client_today, target=EXCLUDED.target");
     
-    $stmt->bind_param("sdiidii", $date, $income, $clients, $target, $income, $clients, $target);
+    // PostgreSQL takes the update values from EXCLUDED, so only the
+    // four placeholders above are bound (track_date, income, clients, target).
+    $stmt->bind_param("sdid", $date, $income, $clients, $target);
 
     if ($stmt->execute()) {
         header("Location: tracker.php?status=success");

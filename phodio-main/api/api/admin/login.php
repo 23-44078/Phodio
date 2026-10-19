@@ -147,14 +147,14 @@ if (isset($_POST['login'])) {
         </div>
     <?php endif; ?>
 
-    <form method="POST">
+    <form method="POST" autocomplete="off">
         <div class="mb-3 text-start">
             <label class="form-label small fw-bold text-uppercase">Username</label>
             <div class="input-group">
                 <span class="input-group-text bg-transparent">
                     <i class="ri-user-3-line"></i>
                 </span>
-                <input type="text" name="username" class="form-control" placeholder="Enter username" required>
+                <input type="text" name="username" class="form-control" placeholder="Enter username" autocomplete="off" required>
             </div>
         </div>
 
@@ -164,7 +164,7 @@ if (isset($_POST['login'])) {
                 <span class="input-group-text bg-transparent">
                     <i class="ri-lock-2-line"></i>
                 </span>
-                <input type="password" name="password" id="passwordInput" class="form-control" placeholder="••••••••" required>
+                <input type="password" name="password" id="passwordInput" class="form-control" placeholder="••••••••" autocomplete="new-password" required>
                 <span class="input-group-text bg-transparent" id="togglePassword">
                     <i class="ri-eye-line" id="eyeIcon"></i>
                 </span>
