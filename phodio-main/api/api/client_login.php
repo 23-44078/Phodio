@@ -583,6 +583,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 transform .55s
                 cubic-bezier(0.4, 0, 0.2, 1);
 
+            display: flex;
+
             align-items: center;
 
             padding: 48px;
