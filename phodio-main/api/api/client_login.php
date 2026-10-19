@@ -356,6 +356,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
         /* --------------------------------------------------
+           CARD HEIGHT
+
+           Both halves are absolutely positioned, so the card
+           would stay at its min-height even when the sign-up
+           form (or its error message) is taller. This invisible
+           block sits in the flow and is sized by JS to the
+           active form, which lets the card grow instead of
+           clipping the bottom of the form.
+        -------------------------------------------------- */
+
+        .login-height-sizer {
+
+            width: 100%;
+
+            height: 0;
+
+            pointer-events: none;
+
+            visibility: hidden;
+
+            transition:
+                height .45s
+                cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+
+        /* --------------------------------------------------
            BRAND SIDE
         -------------------------------------------------- */
 
@@ -815,6 +842,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             color:
                 #fff;
+        }
+
+
+        @keyframes phodio-spin {
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+
+        /* Spinner drawn with CSS: a ring with a coloured top arc that
+           rotates. It does not depend on the icon font, so it always
+           spins - even if the Remix Icon CDN is slow or blocked. */
+
+        .login-button .phodio-spinner {
+
+            display: inline-block;
+
+            width: 15px;
+            height: 15px;
+
+            margin-right: 2px;
+
+            vertical-align: -2px;
+
+            border:
+                2px solid
+                rgba(255, 255, 255, .35);
+
+            border-top-color:
+                #ffffff;
+
+            border-radius: 50%;
+
+            animation:
+                phodio-spin .7s linear infinite;
+        }
+
+
+        .login-button:disabled {
+
+            opacity: .85;
+
+            cursor: progress;
         }
 
 
@@ -1827,6 +1899,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </section>
 
 
+    <div
+        class="login-height-sizer"
+        id="cardHeightSizer"
+        aria-hidden="true"
+    ></div>
+
+
 </div>
 
 
@@ -1848,6 +1927,7 @@ function switchToSignup(e) {
     if (isAnimating || !wrapper) return;
     isAnimating = true;
     wrapper.classList.add('signup-active');
+    if (typeof syncCardHeight === 'function') syncCardHeight();
     setTimeout(function() { isAnimating = false; }, ANIMATION_MS);
 }
 
@@ -1856,11 +1936,64 @@ function switchToLogin(e) {
     if (isAnimating || !wrapper) return;
     isAnimating = true;
     wrapper.classList.remove('signup-active');
+    if (typeof syncCardHeight === 'function') syncCardHeight();
     setTimeout(function() { isAnimating = false; }, ANIMATION_MS);
 }
 
 if (showSignupBtn) showSignupBtn.addEventListener('click', switchToSignup);
 if (showLoginBtn)  showLoginBtn.addEventListener('click', switchToLogin);
+
+
+/* ======================================================
+   CARD HEIGHT (desktop / tablet split layout)
+====================================================== */
+
+var heightSizer  = document.getElementById('cardHeightSizer');
+var formPanel    = document.querySelector('.login-side');
+var loginContent = document.querySelector('.login-side > .login-content:not(.signup-content)');
+var signupContent = document.getElementById('signupContent');
+
+function syncCardHeight() {
+    if (!heightSizer || !formPanel) return;
+
+    // Stacked mobile layout: the panels are in the flow, so the browser
+    // already sizes the card and the sizer must not add height.
+    if (window.getComputedStyle(formPanel).position !== 'absolute') {
+        heightSizer.style.height = '0px';
+        return;
+    }
+
+    var active = wrapper && wrapper.classList.contains('signup-active')
+        ? signupContent
+        : loginContent;
+
+    if (!active) return;
+
+    var style = window.getComputedStyle(formPanel);
+    var padding =
+        (parseFloat(style.paddingTop) || 0) +
+        (parseFloat(style.paddingBottom) || 0);
+
+    // visibility: hidden still has layout, so the incoming form can be
+    // measured before its fade-in finishes and the card can grow with it.
+    var needed = Math.ceil(active.getBoundingClientRect().height + padding);
+
+    if (needed > 0) {
+        heightSizer.style.height = needed + 'px';
+    }
+}
+
+if (window.ResizeObserver) {
+    var heightObserver = new ResizeObserver(syncCardHeight);
+
+    if (loginContent)  heightObserver.observe(loginContent);
+    if (signupContent) heightObserver.observe(signupContent);
+}
+
+window.addEventListener('resize', syncCardHeight);
+window.addEventListener('load', syncCardHeight);
+
+syncCardHeight();
 
 
 /* ======================================================
@@ -1913,7 +2046,7 @@ if (signupForm) signupForm.addEventListener('submit', function(e) {
     signupErr.style.display = 'none';
     signupOk.style.display  = 'none';
     signupButton.disabled   = true;
-    signupButton.innerHTML  = '<i class="ri-loader-4-line"></i> Creating account…';
+    signupButton.innerHTML  = '<span class="phodio-spinner" aria-hidden="true"></span> Creating account…';
 
     var fd = new FormData(signupForm);
     fd.append('register', '1');
