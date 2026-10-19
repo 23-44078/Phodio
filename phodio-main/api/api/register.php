@@ -162,21 +162,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
 |--------------------------------------------------------------------------
 | AJAX RESPONSE
 |--------------------------------------------------------------------------
+|
+| When the request comes from the sliding sign-up form in client_login.php
+| return JSON so the page can display the result without a full reload.
+|
 */
 
 if (
     $_SERVER['REQUEST_METHOD'] === 'POST' &&
-    isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
-    strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
+    isset($_POST['register'])
 ) {
-    header('Content-Type: application/json');
 
-    echo json_encode([
-        'success' => $success !== '' ? $success : null,
-        'error'   => $error   !== '' ? $error   : null
-    ]);
+    $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
+        && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
-    exit;
+    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+
+    if ($isAjax || strpos($accept, 'application/json') !== false) {
+
+        header('Content-Type: application/json');
+
+        echo json_encode([
+            'success' => $success !== '' ? $success : null,
+            'error'   => $error   !== '' ? $error   : null
+        ]);
+
+        exit;
+    }
 }
 
 ?>

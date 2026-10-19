@@ -1944,7 +1944,10 @@ signupForm.addEventListener('submit', function(e) {
     fetch('/register.php', {
         method: 'POST',
         body: fd,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
