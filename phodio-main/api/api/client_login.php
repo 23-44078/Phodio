@@ -579,6 +579,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             will-change: transform;
 
+            /* Keep the half's own content inside it. Without this, the
+               composited layer leaves a 1px column of stale pixels on the
+               seam after the slide. */
+
+            clip-path: inset(0);
+
             display: grid;
 
             grid-template-columns: 1fr;
@@ -964,30 +970,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             width: 100%;
 
+            /* Coming back to the sign-in form: appear just after the
+               sign-up form has faded out. */
+
             transition:
-                opacity .3s ease;
+                opacity .2s ease .16s,
+                visibility 0s linear .16s;
         }
 
 
-        .signup-content {
+        /* The two forms never fade at the same time: the outgoing one goes
+           first, then the incoming one appears. Overlapping them made both
+           sets of labels paint on top of each other for a moment, which
+           looked like the labels had vanished. The faded-out form is also
+           removed from painting entirely, because a plain opacity: 0 still
+           composes a layer whose edge could bleed through the panel seam. */
 
-            opacity: 0;
-
-            pointer-events: none;
-        }
-
+        .signup-content,
         .login-wrapper.signup-active .login-content:not(.signup-content) {
 
             opacity: 0;
 
+            visibility: hidden;
+
             pointer-events: none;
+
+            transition:
+                opacity .16s ease,
+                visibility 0s linear .16s;
         }
 
         .login-wrapper.signup-active .signup-content {
 
             opacity: 1;
 
+            visibility: visible;
+
             pointer-events: auto;
+
+            transition:
+                opacity .2s ease .16s,
+                visibility 0s linear .16s;
         }
 
 
