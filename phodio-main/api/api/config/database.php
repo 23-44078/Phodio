@@ -332,7 +332,36 @@ final class PhodioDbConnection
 try {
     $conn = new PhodioDbConnection();
 } catch (Throwable $error) {
-    http_response_code(500);
+    /*
+     * Background (AJAX) requests such as the sign-up form expect JSON. A
+     * plain-text body would be reported by the browser as "Could not
+     * connect", hiding the real reason, so answer with JSON instead.
+     */
+    $wantsJson =
+        stripos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false
+        || strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest';
+
+    if (!headers_sent()) {
+        http_response_code(500);
+    }
+
+    if ($wantsJson) {
+        if (ob_get_level() > 0) {
+            ob_clean();
+        }
+
+        if (!headers_sent()) {
+            header('Content-Type: application/json; charset=utf-8');
+            header('Cache-Control: no-store');
+        }
+
+        echo json_encode([
+            'success' => null,
+            'error'   => 'The server could not reach the database right now. Please try again.',
+        ]);
+
+        exit;
+    }
 
     die(
         'Database connection failed. Check the Supabase DATABASE_URL environment variable.'

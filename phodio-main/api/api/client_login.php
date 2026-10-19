@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     username,
                     password
                 FROM users
-                WHERE username = :username
+                WHERE LOWER(username) = LOWER(:username)
                 LIMIT 1
             ");
 
@@ -1364,7 +1364,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 
 
-<div class="login-wrapper">
+<div class="login-wrapper" id="loginWrapper">
 
 
     <!-- BRANDING -->
@@ -1477,6 +1477,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
             <form
+                id="loginForm"
                 method="POST"
                 action="/client_login.php"
                 autocomplete="off"
@@ -1868,7 +1869,7 @@ var isAnimating  = false;
 
 function switchToSignup(e) {
     if (e) e.preventDefault();
-    if (isAnimating) return;
+    if (isAnimating || !wrapper) return;
     isAnimating = true;
     wrapper.classList.add('signup-active');
     setTimeout(function() { isAnimating = false; }, ANIMATION_MS);
@@ -1876,14 +1877,14 @@ function switchToSignup(e) {
 
 function switchToLogin(e) {
     if (e) e.preventDefault();
-    if (isAnimating) return;
+    if (isAnimating || !wrapper) return;
     isAnimating = true;
     wrapper.classList.remove('signup-active');
     setTimeout(function() { isAnimating = false; }, ANIMATION_MS);
 }
 
-showSignupBtn.addEventListener('click', switchToSignup);
-showLoginBtn.addEventListener('click', switchToLogin);
+if (showSignupBtn) showSignupBtn.addEventListener('click', switchToSignup);
+if (showLoginBtn)  showLoginBtn.addEventListener('click', switchToLogin);
 
 
 /* ======================================================
@@ -1894,7 +1895,7 @@ var passwordInput   = document.getElementById('password');
 var passwordToggle  = document.getElementById('passwordToggle');
 var passwordIcon    = document.getElementById('passwordIcon');
 
-passwordToggle.addEventListener('click', function() {
+if (passwordToggle && passwordInput) passwordToggle.addEventListener('click', function() {
     var isPw = passwordInput.type === 'password';
     passwordInput.type = isPw ? 'text' : 'password';
     passwordIcon.className = isPw ? 'ri-eye-off-line' : 'ri-eye-line';
@@ -1910,7 +1911,7 @@ var signupPwInput   = document.getElementById('signupPassword');
 var signupPwToggle  = document.getElementById('signupPasswordToggle');
 var signupPwIcon    = document.getElementById('signupPasswordIcon');
 
-signupPwToggle.addEventListener('click', function() {
+if (signupPwToggle && signupPwInput) signupPwToggle.addEventListener('click', function() {
     var isPw = signupPwInput.type === 'password';
     signupPwInput.type = isPw ? 'text' : 'password';
     signupPwIcon.className = isPw ? 'ri-eye-off-line' : 'ri-eye-line';
@@ -1929,7 +1930,7 @@ var signupErrText = document.getElementById('signupErrorText');
 var signupOk      = document.getElementById('signupSuccess');
 var signupOkText  = document.getElementById('signupSuccessText');
 
-signupForm.addEventListener('submit', function(e) {
+if (signupForm) signupForm.addEventListener('submit', function(e) {
     e.preventDefault();
     if (isAnimating) return;
 
@@ -1949,7 +1950,19 @@ signupForm.addEventListener('submit', function(e) {
             'Accept': 'application/json'
         }
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) {
+        return r.text().then(function(body) {
+            try {
+                return JSON.parse(body);
+            } catch (err) {
+                return {
+                    error: r.ok
+                        ? 'An unexpected error occurred.'
+                        : 'The server could not complete the request (' + r.status + '). Please try again.'
+                };
+            }
+        });
+    })
     .then(function(data) {
         if (data.success) {
             signupOk.style.display     = 'flex';
@@ -1979,7 +1992,9 @@ signupForm.addEventListener('submit', function(e) {
    BLOCK SUBMIT DURING ANIMATION
 ====================================================== */
 
-document.getElementById('loginForm').addEventListener('submit', function(e) {
+var loginForm = document.getElementById('loginForm');
+
+if (loginForm) loginForm.addEventListener('submit', function(e) {
     if (isAnimating) e.preventDefault();
 });
 

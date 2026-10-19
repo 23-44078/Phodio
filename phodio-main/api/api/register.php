@@ -1,5 +1,74 @@
 <?php
 
+/*
+|--------------------------------------------------------------------------
+| AJAX DETECTION
+|--------------------------------------------------------------------------
+|
+| The sliding sign-up form on client_login.php posts here in the background.
+| Deciding this BEFORE any include runs lets every failure path (including
+| the "database connection failed" exit inside config/database.php and any
+| PHP fatal) still answer with valid JSON instead of an HTML page, which the
+| browser could only report as "Could not connect".
+|
+*/
+
+$phodioIsAjax =
+    strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest'
+    || stripos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false;
+
+// Buffer everything so stray notices/warnings can never corrupt the JSON body.
+ob_start();
+
+/**
+ * Send the JSON answer for an AJAX registration attempt and stop.
+ */
+function phodio_register_json(?string $success, ?string $error): void
+{
+    if (ob_get_level() > 0) {
+        ob_clean();
+    }
+
+    if (!headers_sent()) {
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+    }
+
+    define('PHODIO_REGISTER_RESPONDED', true);
+
+    echo json_encode([
+        'success' => $success,
+        'error'   => $error,
+    ]);
+
+    exit;
+}
+
+// Last-resort JSON answer if the request dies unexpectedly (missing DB
+// extension, connection failure, timeout, fatal error...).
+if ($phodioIsAjax) {
+    register_shutdown_function(function () {
+        if (defined('PHODIO_REGISTER_RESPONDED')) {
+            return;
+        }
+
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        if (!headers_sent()) {
+            http_response_code(500);
+            header('Content-Type: application/json; charset=utf-8');
+            header('Cache-Control: no-store');
+        }
+
+        echo json_encode([
+            'success' => null,
+            'error'   => 'We could not create your account right now. Please try again.',
+        ]);
+    });
+}
+
 require_once __DIR__ . '/config/database.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -17,6 +86,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
     $phone     = trim($_POST['phone'] ?? '');
     $password  = $_POST['password'] ?? '';
 
+    // Gmail addresses are not case sensitive.
+    $username = strtolower($username);
+
+    // Accept 09171234567, 0917 123 4567, +63 917 123 4567 and 639171234567.
+    $phone = preg_replace('/[^0-9+]/', '', $phone);
+
+    if (str_starts_with($phone, '+63')) {
+        $phone = '0' . substr($phone, 3);
+    } elseif (str_starts_with($phone, '63') && strlen($phone) === 12) {
+        $phone = '0' . substr($phone, 2);
+    }
+
     // -----------------------------------------
     // VALIDATION
     // -----------------------------------------
@@ -33,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
 
     elseif (
         !filter_var($username, FILTER_VALIDATE_EMAIL) ||
-        !str_ends_with(strtolower($username), '@gmail.com')
+        !str_ends_with($username, '@gmail.com')
     ) {
         $error = 'Please use a valid Gmail address.';
     }
@@ -62,9 +143,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
             // -----------------------------------------
 
             $check = $pdo->prepare(
-                'SELECT id
+                'SELECT id, username, phone
                  FROM users
-                 WHERE username = :username
+                 WHERE LOWER(username) = LOWER(:username)
                     OR phone = :phone
                  LIMIT 1'
             );
@@ -78,7 +159,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
 
             if ($existingUser) {
 
-                $error = 'User already exists.';
+                if (
+                    isset($existingUser['username']) &&
+                    strtolower((string) $existingUser['username']) === $username
+                ) {
+                    $error = 'An account with this Gmail already exists.';
+                } else {
+                    $error = 'An account with this phone number already exists.';
+                }
 
             } else {
 
@@ -96,63 +184,119 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
                 // -----------------------------------------
 
                 /*
-                 * Vercel's filesystem is temporary.
-                 *
-                 * For now, use the default image.
-                 * We can move profile uploads to Supabase
-                 * Storage afterward.
+                 * Vercel's filesystem is temporary, so profile photos are
+                 * added later (see the note under the file input).
                  */
 
                 $profile_image = 'default.png';
 
-                // -----------------------------------------
-                // INSERT USER
-                // -----------------------------------------
+                $insertColumns = 'firstname, lastname, username, phone, password, profile_image';
+                $insertValues  = ':firstname, :lastname, :username, :phone, :password, :profile_image';
 
-                $stmt = $pdo->prepare(
-                    'INSERT INTO users
-                    (
-                        firstname,
-                        lastname,
-                        username,
-                        phone,
-                        password,
-                        profile_image
-                    )
-                    VALUES
-                    (
-                        :firstname,
-                        :lastname,
-                        :username,
-                        :phone,
-                        :password,
-                        :profile_image
-                    )'
-                );
-
-                $stmt->execute([
+                $params = [
                     ':firstname'     => $firstname,
                     ':lastname'      => $lastname,
                     ':username'      => $username,
                     ':phone'         => $phone,
                     ':password'      => $hashedPassword,
-                    ':profile_image' => $profile_image
-                ]);
+                    ':profile_image' => $profile_image,
+                ];
 
-                $success = 'Successfully Registered!';
+                $attempt = 0;
+
+                while (true) {
+
+                    $attempt++;
+
+                    // Drop the profile_image column if this database was
+                    // created before that column existed.
+                    if (!isset($params[':profile_image'])) {
+                        $insertColumns = 'firstname, lastname, username, phone, password';
+                        $insertValues  = ':firstname, :lastname, :username, :phone, :password';
+                    }
+
+                    try {
+
+                        $stmt = $pdo->prepare(
+                            'INSERT INTO users (' . $insertColumns . ')
+                             VALUES (' . $insertValues . ')'
+                        );
+
+                        $stmt->execute($params);
+
+                        $success = 'Successfully Registered!';
+                        break;
+
+                    } catch (PDOException $insertError) {
+
+                        $sqlState = (string) $insertError->getCode();
+                        $message  = $insertError->getMessage();
+
+                        /*
+                         * The imported sample rows keep ids 1 and 2 but the
+                         * PostgreSQL sequence can fall behind them. The very
+                         * next account would then collide on users_pkey and
+                         * never be created. Re-sync the sequence and retry.
+                         */
+                        if (
+                            $sqlState === '23505' &&
+                            $attempt === 1 &&
+                            stripos($message, 'users_pkey') !== false
+                        ) {
+                            try {
+                                $pdo->query(
+                                    "SELECT setval(
+                                         pg_get_serial_sequence('users', 'id'),
+                                         COALESCE((SELECT MAX(id) FROM users), 0) + 1,
+                                         false
+                                     )"
+                                );
+                            } catch (Throwable $sequenceError) {
+                                // Ignore: the retry below will report the
+                                // real problem if it still fails.
+                            }
+
+                            continue;
+                        }
+
+                        // Old database without the profile_image column.
+                        if (
+                            $sqlState === '42703' &&
+                            stripos($message, 'profile_image') !== false &&
+                            isset($params[':profile_image'])
+                        ) {
+                            unset($params[':profile_image']);
+                            continue;
+                        }
+
+                        if ($sqlState === '23505') {
+                            $error = 'An account with this Gmail or phone number already exists.';
+                        } else {
+                            $error = 'We could not create your account right now. Please try again.';
+                        }
+
+                        error_log('Phodio registration failed: ' . $message);
+
+                        break;
+                    }
+                }
             }
 
         } catch (PDOException $e) {
 
             /*
-             * Keep the actual PostgreSQL error visible while
-             * we are debugging the deployment.
+             * Keep the reason in the server log; never render raw SQL in the
+             * browser.
              */
-            $error = 'Database error: ' . $e->getMessage();
+            error_log('Phodio registration failed: ' . $e->getMessage());
+
+            $error = 'We could not create your account right now. Please try again.';
 
         } catch (Throwable $e) {
 
-            $error = 'Application error: ' . $e->getMessage();
+            error_log('Phodio registration failed: ' . $e->getMessage());
+
+            $error = 'We could not create your account right now. Please try again.';
         }
     }
 }
@@ -169,26 +313,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
 */
 
 if (
+    $phodioIsAjax &&
     $_SERVER['REQUEST_METHOD'] === 'POST' &&
     isset($_POST['register'])
 ) {
-
-    $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
-        && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
-
-    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
-
-    if ($isAjax || strpos($accept, 'application/json') !== false) {
-
-        header('Content-Type: application/json');
-
-        echo json_encode([
-            'success' => $success !== '' ? $success : null,
-            'error'   => $error   !== '' ? $error   : null
-        ]);
-
-        exit;
-    }
+    phodio_register_json(
+        $success !== '' ? $success : null,
+        $error !== '' ? $error : null
+    );
 }
 
 ?>
