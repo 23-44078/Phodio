@@ -331,15 +331,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .login-wrapper {
 
+            position: relative;
+
             width: 100%;
 
             max-width: 1060px;
-
-            display: grid;
-
-            grid-template-columns:
-                1.05fr
-                .95fr;
 
             min-height: 620px;
 
@@ -365,7 +361,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .brand-side {
 
-            position: relative;
+            position: absolute;
+
+            top: 0;
+            bottom: 0;
+            left: 0;
+
+            width: 52.5%;
+
+            z-index: 3;
+
+            will-change: transform;
+
+            transition:
+                transform .55s
+                cubic-bezier(0.4, 0, 0.2, 1);
 
             display: flex;
 
@@ -557,7 +567,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .login-side {
 
-            display: flex;
+            position: absolute;
+
+            top: 0;
+            bottom: 0;
+            right: 0;
+
+            width: 47.5%;
+
+            z-index: 2;
+
+            will-change: transform;
+
+            transition:
+                transform .55s
+                cubic-bezier(0.4, 0, 0.2, 1);
 
             align-items: center;
 
@@ -913,14 +937,284 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
         /* --------------------------------------------------
+           SIGNUP SIDE
+        -------------------------------------------------- */
+
+        .signup-side {
+
+            position: absolute;
+
+            top: 0;
+            bottom: 0;
+            left: 0;
+
+            width: 47.5%;
+
+            z-index: 2;
+
+            display: flex;
+
+            align-items: center;
+
+            padding: 48px;
+
+            background:
+                #0e1219;
+
+            transform: translateX(-100%);
+
+            opacity: 0;
+
+            pointer-events: none;
+
+            will-change: transform, opacity;
+
+            transition:
+                transform .55s
+                cubic-bezier(0.4, 0, 0.2, 1),
+                opacity .3s ease;
+        }
+
+
+        /* --------------------------------------------------
+           CONTENT CROSSFADE
+        -------------------------------------------------- */
+
+        .login-side {
+
+            transition:
+                transform .55s
+                cubic-bezier(0.4, 0, 0.2, 1),
+                opacity .3s ease;
+        }
+
+
+        /* --------------------------------------------------
+           SLIDE DIRECTIONS
+        -------------------------------------------------- */
+
+        .login-wrapper.signup-active .brand-side {
+
+            transform: translateX(90.476%);
+        }
+
+        .login-wrapper.signup-active .login-side {
+
+            transform: translateX(100%);
+
+            opacity: 0;
+
+            pointer-events: none;
+        }
+
+        .login-wrapper.signup-active .signup-side {
+
+            transform: translateX(0);
+
+            opacity: 1;
+
+            pointer-events: auto;
+        }
+
+
+        /* --------------------------------------------------
+           SIGNUP compact spacing
+        -------------------------------------------------- */
+
+        .signup-side .login-heading {
+
+            margin-bottom: 18px;
+        }
+
+        .signup-side .login-heading h2 {
+
+            font-size: 1.65rem;
+        }
+
+        .signup-side .login-heading p {
+
+            font-size: .84rem;
+        }
+
+        .signup-side .field {
+
+            margin-bottom: 10px;
+        }
+
+        .signup-side .field label {
+
+            margin-bottom: 5px;
+
+            font-size: .78rem;
+        }
+
+        .signup-side .input-wrapper input {
+
+            height: 40px;
+
+            padding: 0 14px 0 38px;
+
+            font-size: .85rem;
+        }
+
+        .signup-side .field-row {
+
+            display: grid;
+
+            grid-template-columns: 1fr 1fr;
+
+            gap: 8px;
+        }
+
+        .signup-side .field-row .field {
+
+            margin-bottom: 10px;
+        }
+
+        .signup-side .input-icon {
+
+            font-size: 1rem;
+        }
+
+        .signup-side .password-toggle {
+
+            width: 26px;
+
+            height: 26px;
+        }
+
+        .signup-side .login-button {
+
+            height: 42px;
+
+            margin-top: 2px;
+
+            font-size: .85rem;
+        }
+
+        .signup-side .security-note {
+
+            margin-top: 10px;
+
+            font-size: .7rem;
+        }
+
+        .signup-side .register-link {
+
+            margin-top: 14px;
+
+            padding-top: 12px;
+
+            font-size: .8rem;
+        }
+
+        .signup-side .file-input {
+
+            width: 100%;
+
+            padding: 8px 12px;
+
+            border:
+                1px solid
+                #30394a;
+
+            border-radius: 12px;
+
+            background:
+                #151a23;
+
+            color:
+                var(--text);
+
+            font-size: .82rem;
+
+            cursor: pointer;
+        }
+
+        .signup-side .file-input::file-selector-button {
+
+            padding: 6px 14px;
+
+            margin-right: 12px;
+
+            border:
+                1px solid
+                #30394a;
+
+            border-radius: 8px;
+
+            background:
+                #1a2030;
+
+            color:
+                var(--text);
+
+            font-size: .82rem;
+
+            cursor: pointer;
+        }
+
+        .signup-side .error-message,
+        .signup-side .success-message {
+
+            padding: 10px 12px;
+
+            margin-bottom: 14px;
+
+            font-size: .8rem;
+        }
+
+        .signup-side .success-message {
+
+            display: flex;
+
+            align-items: flex-start;
+
+            gap: 10px;
+
+            border:
+                1px solid
+                rgba(34,197,94,.28);
+
+            border-radius: 12px;
+
+            background:
+                rgba(34,197,94,.09);
+
+            color:
+                #86efac;
+
+            line-height: 1.5;
+        }
+
+        .signup-side .success-message i {
+
+            margin-top: 1px;
+
+            color:
+                #4ade80;
+
+            font-size: 1.05rem;
+        }
+
+        .signup-side .optional {
+
+            color:
+                var(--muted);
+
+            font-weight: 400;
+
+            font-size: .75rem;
+        }
+
+
+        /* --------------------------------------------------
            MOBILE
         -------------------------------------------------- */
 
         @media (max-width: 820px) {
 
             .login-wrapper {
-
-                grid-template-columns: 1fr;
 
                 max-width: 520px;
 
@@ -929,6 +1223,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
             .brand-side {
+
+                position: relative;
+
+                width: 100%;
 
                 min-height: 280px;
 
@@ -950,7 +1248,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             .login-side {
 
+                position: relative;
+
+                width: 100%;
+
+                right: auto;
+
                 padding: 34px 28px 38px;
+            }
+
+
+            .signup-side {
+
+                position: relative;
+
+                width: 100%;
+
+                left: auto;
+
+                padding: 34px 28px 38px;
+            }
+
+
+            .signup-side {
+
+                display: none;
+            }
+
+
+            .login-wrapper.signup-active .login-side {
+
+                display: none;
+            }
+
+
+            .login-wrapper.signup-active .signup-side {
+
+                display: flex;
+            }
+
+
+            .login-wrapper.signup-active .brand-side,
+            .login-wrapper.signup-active .login-side,
+            .login-wrapper.signup-active .signup-side {
+
+                transform: none;
+
+                opacity: 1;
             }
 
         }
@@ -993,6 +1337,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 padding: 30px 22px;
             }
 
+
+            .signup-side {
+
+                padding: 30px 22px;
+            }
+
+        }
+
+
+        @media (prefers-reduced-motion: reduce) {
+
+            .brand-side,
+            .login-side,
+            .signup-side {
+
+                transition: none;
+            }
         }
 
     </style>
@@ -1227,8 +1588,258 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 Don't have an account?
 
-                <a href="/register.php">
+                <a href="/register.php" id="showSignup">
                     Create one
+                </a>
+
+            </div>
+
+
+        </div>
+
+    </section>
+
+
+    <!-- SIGNUP -->
+
+    <section class="signup-side" id="signupSide">
+
+        <div class="login-content">
+
+
+            <div class="login-heading">
+
+                <h2>
+                    Create account
+                </h2>
+
+                <p>
+                    Join Phodio to manage your photography sessions.
+                </p>
+
+            </div>
+
+
+            <div
+                id="signupError"
+                class="error-message"
+                role="alert"
+                style="display:none"
+            >
+
+                <i class="ri-error-warning-line"></i>
+
+                <span id="signupErrorText"></span>
+
+            </div>
+
+
+            <div
+                id="signupSuccess"
+                class="success-message"
+                role="status"
+                style="display:none"
+            >
+
+                <i class="ri-check-double-line"></i>
+
+                <span id="signupSuccessText"></span>
+
+            </div>
+
+
+            <form
+                id="signupForm"
+                autocomplete="off"
+            >
+
+
+                <div class="field-row">
+
+                    <div class="field">
+
+                        <label for="signupFirstname">
+                            First name
+                        </label>
+
+                        <div class="input-wrapper">
+
+                            <i class="ri-user-line input-icon"></i>
+
+                            <input
+                                type="text"
+                                id="signupFirstname"
+                                name="firstname"
+                                placeholder="First name"
+                                autocomplete="off"
+                                required
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label for="signupLastname">
+                            Last name
+                        </label>
+
+                        <div class="input-wrapper">
+
+                            <i class="ri-user-line input-icon"></i>
+
+                            <input
+                                type="text"
+                                id="signupLastname"
+                                name="lastname"
+                                placeholder="Last name"
+                                autocomplete="off"
+                                required
+                            >
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="field">
+
+                    <label for="signupEmail">
+                        Email address
+                        <span class="optional">(Gmail)</span>
+                    </label>
+
+                    <div class="input-wrapper">
+
+                        <i class="ri-mail-line input-icon"></i>
+
+                        <input
+                            type="email"
+                            id="signupEmail"
+                            name="username"
+                            placeholder="you@gmail.com"
+                            autocomplete="off"
+                            required
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div class="field">
+
+                    <label for="signupPhone">
+                        Phone number
+                    </label>
+
+                    <div class="input-wrapper">
+
+                        <i class="ri-phone-line input-icon"></i>
+
+                        <input
+                            type="text"
+                            id="signupPhone"
+                            name="phone"
+                            placeholder="09XXXXXXXXX"
+                            maxlength="11"
+                            autocomplete="off"
+                            required
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div class="field">
+
+                    <label for="signupPassword">
+                        Password
+                    </label>
+
+                    <div class="input-wrapper">
+
+                        <i class="ri-lock-2-line input-icon"></i>
+
+                        <input
+                            type="password"
+                            id="signupPassword"
+                            name="password"
+                            placeholder="Create a password"
+                            autocomplete="new-password"
+                            required
+                        >
+
+                        <button
+                            type="button"
+                            class="password-toggle"
+                            id="signupPasswordToggle"
+                            aria-label="Show password"
+                        >
+
+                            <i class="ri-eye-line" id="signupPasswordIcon"></i>
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <div class="field">
+
+                    <label for="signupProfile">
+                        Profile photo
+                        <span class="optional">(optional)</span>
+                    </label>
+
+                    <input
+                        type="file"
+                        id="signupProfile"
+                        name="profile"
+                        accept="image/*"
+                        class="file-input"
+                    >
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="login-button"
+                    id="signupButton"
+                >
+
+                    <i class="ri-user-add-line"></i>
+
+                    Create account
+
+                </button>
+
+
+                <div class="security-note">
+
+                    <i class="ri-shield-check-line"></i>
+
+                    Your data is encrypted and securely stored.
+
+                </div>
+
+
+            </form>
+
+
+            <div class="register-link">
+
+                Already have an account?
+
+                <a href="#" id="showLogin">
+                    Sign in
                 </a>
 
             </div>
@@ -1244,52 +1855,130 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <script>
 
-const passwordInput =
-    document.getElementById(
-        'password'
-    );
+/* ======================================================
+   TOGGLE
+====================================================== */
 
-const passwordToggle =
-    document.getElementById(
-        'passwordToggle'
-    );
+var wrapper       = document.getElementById('loginWrapper');
+var showSignupBtn = document.getElementById('showSignup');
+var showLoginBtn  = document.getElementById('showLogin');
 
-const passwordIcon =
-    document.getElementById(
-        'passwordIcon'
-    );
+var ANIMATION_MS = 550;
+var isAnimating  = false;
 
+function switchToSignup(e) {
+    if (e) e.preventDefault();
+    if (isAnimating) return;
+    isAnimating = true;
+    wrapper.classList.add('signup-active');
+    setTimeout(function() { isAnimating = false; }, ANIMATION_MS);
+}
 
-passwordToggle.addEventListener(
-    'click',
-    function () {
+function switchToLogin(e) {
+    if (e) e.preventDefault();
+    if (isAnimating) return;
+    isAnimating = true;
+    wrapper.classList.remove('signup-active');
+    setTimeout(function() { isAnimating = false; }, ANIMATION_MS);
+}
 
-        const isPassword =
-            passwordInput.type ===
-            'password';
-
-
-        passwordInput.type =
-            isPassword
-                ? 'text'
-                : 'password';
-
-
-        passwordIcon.className =
-            isPassword
-                ? 'ri-eye-off-line'
-                : 'ri-eye-line';
+showSignupBtn.addEventListener('click', switchToSignup);
+showLoginBtn.addEventListener('click', switchToLogin);
 
 
-        passwordToggle.setAttribute(
-            'aria-label',
-            isPassword
-                ? 'Hide password'
-                : 'Show password'
-        );
+/* ======================================================
+   LOGIN PASSWORD TOGGLE
+====================================================== */
 
-    }
-);
+var passwordInput   = document.getElementById('password');
+var passwordToggle  = document.getElementById('passwordToggle');
+var passwordIcon    = document.getElementById('passwordIcon');
+
+passwordToggle.addEventListener('click', function() {
+    var isPw = passwordInput.type === 'password';
+    passwordInput.type = isPw ? 'text' : 'password';
+    passwordIcon.className = isPw ? 'ri-eye-off-line' : 'ri-eye-line';
+    passwordToggle.setAttribute('aria-label', isPw ? 'Hide password' : 'Show password');
+});
+
+
+/* ======================================================
+   SIGNUP PASSWORD TOGGLE
+====================================================== */
+
+var signupPwInput   = document.getElementById('signupPassword');
+var signupPwToggle  = document.getElementById('signupPasswordToggle');
+var signupPwIcon    = document.getElementById('signupPasswordIcon');
+
+signupPwToggle.addEventListener('click', function() {
+    var isPw = signupPwInput.type === 'password';
+    signupPwInput.type = isPw ? 'text' : 'password';
+    signupPwIcon.className = isPw ? 'ri-eye-off-line' : 'ri-eye-line';
+    signupPwToggle.setAttribute('aria-label', isPw ? 'Hide password' : 'Show password');
+});
+
+
+/* ======================================================
+   SIGNUP AJAX
+====================================================== */
+
+var signupForm    = document.getElementById('signupForm');
+var signupButton  = document.getElementById('signupButton');
+var signupErr     = document.getElementById('signupError');
+var signupErrText = document.getElementById('signupErrorText');
+var signupOk      = document.getElementById('signupSuccess');
+var signupOkText  = document.getElementById('signupSuccessText');
+
+signupForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (isAnimating) return;
+
+    signupErr.style.display = 'none';
+    signupOk.style.display  = 'none';
+    signupButton.disabled   = true;
+    signupButton.innerHTML  = '<i class="ri-loader-4-line"></i> Creating account…';
+
+    var fd = new FormData(signupForm);
+    fd.append('register', '1');
+
+    fetch('/register.php', {
+        method: 'POST',
+        body: fd,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            signupOk.style.display     = 'flex';
+            signupOkText.textContent   = data.success;
+            signupForm.reset();
+            setTimeout(switchToLogin, 1800);
+        } else if (data.error) {
+            signupErr.style.display    = 'flex';
+            signupErrText.textContent  = data.error;
+        } else {
+            signupErr.style.display    = 'flex';
+            signupErrText.textContent  = 'An unexpected error occurred.';
+        }
+    })
+    .catch(function() {
+        signupErr.style.display    = 'flex';
+        signupErrText.textContent  = 'Could not connect. Please try again.';
+    })
+    .finally(function() {
+        signupButton.disabled  = false;
+        signupButton.innerHTML = '<i class="ri-user-add-line"></i> Create account';
+    });
+});
+
+
+/* ======================================================
+   BLOCK SUBMIT DURING ANIMATION
+====================================================== */
+
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    if (isAnimating) e.preventDefault();
+});
 
 </script>
 
